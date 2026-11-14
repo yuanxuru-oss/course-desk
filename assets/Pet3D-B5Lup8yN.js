@@ -1,4 +1,4 @@
-import{j as al}from"./markdown-RFvVanwh.js";import{r as vr}from"./vendor-BmrmxZN6.js";/**
+import{j as al}from"./markdown-CuoeXrtD.js";import{r as vr}from"./vendor-C66swoxF.js";/**
  * @license
  * Copyright 2010-2026 Three.js Authors
  * SPDX-License-Identifier: MIT
