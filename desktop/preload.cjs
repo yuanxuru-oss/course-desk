@@ -51,4 +51,12 @@ contextBridge.exposeInMainWorld('desktopPet', {
   openApp() {
     ipcRenderer.send('pet:open-app')
   },
+  /** 读系统剪贴板(Electron 里不受浏览器权限限制) */
+  readClipboard() {
+    return ipcRenderer.invoke('pet:clipboard-read')
+  },
+  /** 把「桌宠里加的东西」交给网页:打开 #/capture?d=... 让网站写进自己的库 */
+  openCapture(payload) {
+    ipcRenderer.send('pet:capture', payload)
+  },
 })

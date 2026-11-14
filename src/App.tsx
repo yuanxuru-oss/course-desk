@@ -27,9 +27,10 @@ import { MoreView } from './components/MoreView'
 import { QuickCapture } from './components/QuickCapture'
 import { PetGuide } from './components/PetGuide'
 import { buildSnapshot, pushSnapshot, desktopPetWanted } from './lib/petSync'
+import { readCaptureFromHash, clearCaptureHash, payloadToEvent, payloadToHomework } from './lib/captureLink'
 import { PetWindow } from './components/PetWindow'
 import { runTick, materializeTemplates } from './lib/reminderEngine'
-import { cleanupDuplicateCourses } from './lib/actions'
+import { cleanupDuplicateCourses, upsertEvent, upsertHomework } from './lib/actions'
 import { currentWeek, semesterRange } from './lib/time'
 import { initPwa, initSwSelfHeal } from './lib/pwa'
 import { EditableBrand, EditableAvatar } from './components/EditableBrand'
@@ -144,6 +145,39 @@ export function App() {
   const events = useLiveQuery(() => db.events.toArray(), [], []) ?? []
   const homework = useLiveQuery(() => db.homework.toArray(), [], []) ?? []
   const templates = useLiveQuery(() => db.templates.toArray(), [], []) ?? []
+
+  /*
+   * 桌宠推过来的数据:浏览器被 #/capture?d=... 打开时,把里面的事件/作业写进库。
+   * 这是「桌宠 → 网站」的方向,和下面的「网站 → 桌宠」快照合起来才是闭环。
+   */
+  useEffect(() => {
+    if (!ready) return
+    const payload = readCaptureFromHash()
+    if (!payload) return
+    ;(async () => {
+      try {
+        if (payload.kind === 'event') {
+          const ev = payloadToEvent(payload)
+          if (ev) {
+            await upsertEvent(ev)
+            toast('已从桌宠添加行程:' + ev.title, 'success')
+          }
+        } else {
+          const hw = payloadToHomework(payload)
+          if (hw) {
+            await upsertHomework(hw)
+            toast('已从桌宠添加作业:' + hw.title, 'success')
+          }
+        }
+      } catch (err: any) {
+        toast('从桌宠同步失败:' + (err?.message ?? err), 'error')
+      } finally {
+        clearCaptureHash()
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+
   /*
    * 数据一变就把「今天要看的东西」推给桌面版。
    * 桌面版是独立窗口,自己的 IndexedDB 是空的 —— 不同步的话,

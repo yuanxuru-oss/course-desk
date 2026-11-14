@@ -12,7 +12,7 @@
  * 窗口特性:透明、无边框、置顶、不进任务栏、可拖、平时不挡鼠标(鼠标穿透)。
  * 关掉浏览器 / 最小化浏览器都不影响它;托盘图标可以随时唤起或退出。
  */
-const { app, BrowserWindow, Menu, Tray, screen, ipcMain, shell, nativeImage } = require('electron')
+const { app, BrowserWindow, Menu, Tray, screen, ipcMain, shell, nativeImage, clipboard } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 
@@ -404,6 +404,35 @@ ipcMain.on('pet:quit', () => app.quit())
 
 ipcMain.on('pet:open-app', () => {
   shell.openExternal(APP_URL)
+})
+
+/* 读剪贴板交给主进程:Electron 的 clipboard 不受网页权限限制 */
+ipcMain.handle('pet:clipboard-read', () => {
+  try {
+    return clipboard.readText() || ''
+  } catch {
+    return ''
+  }
+})
+
+/*
+ * 桌宠 → 网页:打开 #/capture?d=<payload>,网页加载后会把它写进自己的库。
+ * 这样在桌宠里加的行程,网站上也能看到(网站随后会把新快照推回来)。
+ */
+ipcMain.on('pet:capture', (_e, payload) => {
+  try {
+    const b64 = Buffer.from(JSON.stringify(payload), 'utf8')
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
+    const base = APP_URL.replace(/\/+$/, '')
+    const url = base + '/#/capture?d=' + b64
+    log('[捕获] 打开', url.slice(0, 80) + '…')
+    shell.openExternal(url)
+  } catch (err) {
+    log('[捕获] 失败', err.message)
+  }
 })
 
 /* ---------- 右键菜单 ---------- */

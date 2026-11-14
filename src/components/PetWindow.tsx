@@ -3,6 +3,7 @@ import type { Course, Homework, Settings } from '../types'
 import { currentSession, nextSession, currentWeek, formatHHMM, WEEKDAY_CN } from '../lib/time'
 import { Bunny } from './PetBunny'
 import { snapshotHeadline } from '../lib/petSync'
+import { parseQuickCapture } from '../lib/quickCapture'
 import type { PetSnapshot } from '../lib/petSync'
 
 const Pet3D = lazy(() => import('./Pet3D'))
@@ -28,6 +29,18 @@ declare global {
       menu(): void
       quit(): void
       openApp(): void
+      readClipboard(): Promise<string>
+      openCapture(payload: {
+        v: 1
+        kind: 'event' | 'homework'
+        title: string
+        date?: string
+        start?: string
+        end?: string
+        location?: string
+        detail?: string
+        dueAt?: number
+      }): void
     }
   }
 }
@@ -46,6 +59,14 @@ export function PetWindow({ courses, homework, settings }: Props) {
   const [look, setLook] = useState({ x: 0, y: 0 })
   const [hover, setHover] = useState(false)
   const [hop, setHop] = useState(0)
+  /* 点桌宠弹出的操作面板 */
+  const [panel, setPanel] = useState<'none' | 'menu' | 'event'>('none')
+  const [hint, setHint] = useState('')
+  const todayStr = () => {
+    const d = new Date()
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+  }
+  const [ev, setEv] = useState({ title: '', date: todayStr(), start: '', end: '', location: '' })
   const dragInfo = useRef({ active: false, moved: 0, ox: 0, oy: 0 })
 
   /** 没有 WebGL(远程桌面 / 老显卡 / 关了硬件加速)就退回 2D,别让窗口变成一片空白 */
@@ -153,9 +174,53 @@ export function PetWindow({ courses, homework, settings }: Props) {
     const wasDrag = dragInfo.current.moved > 4
     dragInfo.current.active = false
     if (wasDrag) bridge?.dragEnd()
-    else setHop((h) => h + 1)
+    else {
+      setHop((h) => h + 1)
+      setPanel((p) => (p === 'none' ? 'menu' : 'none'))
+      setHint('')
+    }
   }
 
+  /* ---------- 面板里的动作 ---------- */
+  const sendEvent = () => {
+    if (!ev.title.trim()) {
+      setHint('先写个标题')
+      return
+    }
+    bridge?.openCapture?.({
+      v: 1,
+      kind: 'event',
+      title: ev.title.trim(),
+      date: ev.date,
+      start: ev.start,
+      end: ev.end,
+      location: ev.location.trim(),
+    })
+    setHint('已交给课程桌,网页里会出现这一条')
+    setPanel('none')
+  }
+
+  const doPaste = async () => {
+    const text = (await bridge?.readClipboard?.()) ?? ''
+    if (!text.trim()) {
+      setHint('剪贴板是空的')
+      return
+    }
+    const cap = parseQuickCapture(text, { now: new Date() })
+    if (!cap) {
+      setHint('这段文字里没认出「日期 + 时间」')
+      return
+    }
+    setEv({
+      title: cap.parsed.title,
+      date: cap.parsed.date,
+      start: cap.parsed.start,
+      end: cap.parsed.end,
+      location: cap.parsed.location ?? '',
+    })
+    setHint('识别好了,确认一下再保存')
+    setPanel('event')
+  }
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button === 2) return
     dragInfo.current = { active: true, moved: 0, ox: e.clientX, oy: e.clientY }
@@ -193,6 +258,92 @@ export function PetWindow({ courses, homework, settings }: Props) {
 
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center select-none bg-transparent overflow-hidden">
+      {/* ============ 点一下弹出的操作面板 ============ */}
+      {panel !== 'none' && (
+        <div className="pointer-events-auto absolute top-1.5 left-1.5 right-1.5 z-10 rounded-[14px] bg-[#fffdf5] border-2 border-ink/70 shadow-lg p-2.5 text-ink">
+          {panel === 'menu' && (
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold tracking-[0.14em] text-ink-mute uppercase">桌宠 · 快速添加</div>
+              <button
+                onClick={() => {
+                  setHint('')
+                  setPanel('event')
+                }}
+                className="w-full h-8 rounded-lg bg-tangerine-500 text-white text-[12px] font-bold hover:bg-tangerine-600"
+              >
+                + 添加行程
+              </button>
+              <button
+                onClick={doPaste}
+                className="w-full h-8 rounded-lg bg-white border border-ink/15 text-[12px] font-bold text-ink-soft hover:bg-ink/[0.04]"
+              >
+                粘贴识别(从剪贴板)
+              </button>
+              <button
+                onClick={() => bridge?.openApp()}
+                className="w-full h-8 rounded-lg bg-white border border-ink/15 text-[12px] font-medium text-ink-soft hover:bg-ink/[0.04]"
+              >
+                打开课程桌
+              </button>
+            </div>
+          )}
+
+          {panel === 'event' && (
+            <div className="space-y-1.5">
+              <input
+                autoFocus
+                value={ev.title}
+                onChange={(e) => setEv({ ...ev, title: e.target.value })}
+                placeholder="标题:学生会例会"
+                className="w-full h-7 rounded-md border border-ink/15 px-2 text-[11.5px] outline-none focus:border-tangerine-400"
+              />
+              <input
+                type="date"
+                value={ev.date}
+                onChange={(e) => setEv({ ...ev, date: e.target.value })}
+                className="w-full min-w-0 h-7 rounded-md border border-ink/15 px-1.5 text-[11px] outline-none focus:border-tangerine-400"
+              />
+              <div className="flex gap-1.5">
+                <input
+                  value={ev.start}
+                  onChange={(e) => setEv({ ...ev, start: e.target.value })}
+                  placeholder="19:00"
+                  className="w-0 flex-1 min-w-0 h-7 rounded-md border border-ink/15 px-1.5 text-[11px] outline-none focus:border-tangerine-400"
+                />
+                <input
+                  value={ev.end}
+                  onChange={(e) => setEv({ ...ev, end: e.target.value })}
+                  placeholder="20:00"
+                  className="w-0 flex-1 min-w-0 h-7 rounded-md border border-ink/15 px-1.5 text-[11px] outline-none focus:border-tangerine-400"
+                />
+              </div>
+              <input
+                value={ev.location}
+                onChange={(e) => setEv({ ...ev, location: e.target.value })}
+                placeholder="地点(可留空)"
+                className="w-full h-7 rounded-md border border-ink/15 px-2 text-[11.5px] outline-none focus:border-tangerine-400"
+              />
+              <div className="flex gap-1.5 pt-0.5">
+                <button
+                  onClick={() => setPanel('menu')}
+                  className="flex-1 h-8 rounded-lg bg-white border border-ink/15 text-[12px] font-medium text-ink-soft"
+                >
+                  返回
+                </button>
+                <button
+                  onClick={sendEvent}
+                  className="flex-[2] h-8 rounded-lg bg-tangerine-500 text-white text-[12px] font-bold hover:bg-tangerine-600"
+                >
+                  保存到课程桌
+                </button>
+              </div>
+            </div>
+          )}
+
+          {hint && <div className="mt-1.5 text-[10.5px] text-tangerine-700 leading-snug">{hint}</div>}
+        </div>
+      )}
+
       <div className="pointer-events-auto bubble mb-1 max-w-[190px] px-2.5 py-1 rounded-2xl text-[11px] font-bold text-ink bg-white/85 border-2 border-ink/70 shadow-sm text-center">
         {line}
       </div>
