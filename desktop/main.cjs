@@ -120,10 +120,46 @@ function registerProtocol() {
   }
 }
 
-/** 处理 coursedesk://open | hide | toggle */
+/** 快照文件:网页推过来的「今天要看的东西」 */
+const snapshotFile = () => path.join(app.getPath('userData'), 'pet-snapshot.json')
+
+function saveSnapshot(snap) {
+  try {
+    fs.writeFileSync(snapshotFile(), JSON.stringify(snap), 'utf8')
+    log('[快照] 已保存 week=', snap.week, 'courses=', (snap.today || []).length, 'events=', (snap.events || []).length)
+    if (win && !win.isDestroyed()) win.webContents.send('pet:snapshot', snap)
+  } catch (err) {
+    log('[快照] 保存失败', err.message)
+  }
+}
+
+function loadSnapshot() {
+  try {
+    return JSON.parse(fs.readFileSync(snapshotFile(), 'utf8'))
+  } catch {
+    return null
+  }
+}
+
+/** 处理 coursedesk://open | hide | toggle | sync?d=... */
 function handleUrl(raw) {
   if (!raw || !raw.startsWith(PROTOCOL + '://')) return
-  const action = raw.slice(PROTOCOL.length + 3).replace(/\/+$/, '').toLowerCase() || 'open'
+  const body = raw.slice(PROTOCOL.length + 3)
+  const [actionRaw, query] = body.split('?')
+  const action = (actionRaw || 'open').replace(/\/+$/, '').toLowerCase()
+
+  if (action === 'sync') {
+    try {
+      const d = new URLSearchParams(query || '').get('d') || ''
+      const b64 = d.replace(/-/g, '+').replace(/_/g, '/')
+      const json = Buffer.from(b64, 'base64').toString('utf8')
+      saveSnapshot(JSON.parse(json))
+    } catch (err) {
+      log('[快照] 解析失败', err.message)
+    }
+    return
+  }
+
   log('[协议] 收到', action)
   if (!win) createWindow()
   if (action === 'hide') win.hide()
@@ -305,6 +341,25 @@ function createWindow() {
   win.on('move', scheduleSave)
   win.on('moved', scheduleSave)
 
+  /*
+   * 盯着快照文件:网页可能通过「第二个实例」把新数据写进来(那种情况下
+   * 当前窗口收不到 IPC),也可能直接改写文件。每 3 秒对一次修改时间,
+   * 变了就推给渲染端刷新气泡。
+   */
+  let lastSnapMtime = 0
+  const snapWatch = setInterval(() => {
+    if (!win || win.isDestroyed()) return
+    try {
+      const st = fs.statSync(snapshotFile())
+      if (st.mtimeMs !== lastSnapMtime) {
+        lastSnapMtime = st.mtimeMs
+        const snap = loadSnapshot()
+        if (snap) win.webContents.send('pet:snapshot', snap)
+      }
+    } catch {}
+  }, 3000)
+  win.on('closed', () => clearInterval(snapWatch))
+
   win.on('closed', () => {
     saveBounds()
     win = null
@@ -313,6 +368,8 @@ function createWindow() {
 }
 
 /* ---------- 渲染端 → 主进程 ---------- */
+ipcMain.handle('pet:get-snapshot', () => loadSnapshot())
+
 ipcMain.on('pet:interactive', (_e, on) => {
   if (!win || win.isDestroyed()) return
   // 鼠标进到兔子身上 → 关掉穿透,才能拖/点;离开 → 恢复穿透

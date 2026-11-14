@@ -26,6 +26,7 @@ import { MoreView } from './components/MoreView'
 
 import { QuickCapture } from './components/QuickCapture'
 import { PetGuide } from './components/PetGuide'
+import { buildSnapshot, pushSnapshot, desktopPetWanted } from './lib/petSync'
 import { PetWindow } from './components/PetWindow'
 import { runTick, materializeTemplates } from './lib/reminderEngine'
 import { cleanupDuplicateCourses } from './lib/actions'
@@ -102,6 +103,7 @@ export function App() {
 
 
 
+
   useEffect(() => {
     init()
     initPwa()
@@ -142,6 +144,30 @@ export function App() {
   const events = useLiveQuery(() => db.events.toArray(), [], []) ?? []
   const homework = useLiveQuery(() => db.homework.toArray(), [], []) ?? []
   const templates = useLiveQuery(() => db.templates.toArray(), [], []) ?? []
+  /*
+   * 数据一变就把「今天要看的东西」推给桌面版。
+   * 桌面版是独立窗口,自己的 IndexedDB 是空的 —— 不同步的话,
+   * 你在网页里加的行程它根本不知道。
+   */
+  const pushNow = () => {
+    if (!ready) return
+    pushSnapshot(buildSnapshot(courses, events, homework, settings))
+  }
+
+  useEffect(() => {
+    if (!ready || !desktopPetWanted()) return
+    const t = setTimeout(pushNow, 1200)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, courses, events, homework, settings])
+
+  // 用户刚打开桌宠开关时,立刻推一次,不用等数据变化
+  useEffect(() => {
+    const onWanted = () => setTimeout(pushNow, 300)
+    window.addEventListener('coursedesk:pet-wanted', onWanted)
+    return () => window.removeEventListener('coursedesk:pet-wanted', onWanted)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, courses, events, homework, settings])
 
   /* ---- 每周作业模板自动滚动 ---- */
   const matLock = useRef(false)

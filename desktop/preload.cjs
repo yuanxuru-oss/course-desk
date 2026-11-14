@@ -12,6 +12,16 @@ contextBridge.exposeInMainWorld('desktopPet', {
     ipcRenderer.on('pet:cursor', handler)
     return () => ipcRenderer.removeListener('pet:cursor', handler)
   },
+  /** 拉取网页推过来的快照(今天的课 / 行程 / 作业) */
+  getSnapshot() {
+    return ipcRenderer.invoke('pet:get-snapshot')
+  },
+  /** 网页更新数据后会推新的快照过来 */
+  onSnapshot(cb) {
+    const handler = (_e, snap) => cb(snap)
+    ipcRenderer.on('pet:snapshot', handler)
+    return () => ipcRenderer.removeListener('pet:snapshot', handler)
+  },
   /** 鼠标是否在兔子身上:决定窗口要不要接收鼠标事件 */
   setInteractive(on) {
     ipcRenderer.send('pet:interactive', !!on)

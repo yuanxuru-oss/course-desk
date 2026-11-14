@@ -2,6 +2,8 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import type { Course, Homework, Settings } from '../types'
 import { currentSession, nextSession, currentWeek, formatHHMM, WEEKDAY_CN } from '../lib/time'
 import { Bunny } from './PetBunny'
+import { snapshotHeadline } from '../lib/petSync'
+import type { PetSnapshot } from '../lib/petSync'
 
 const Pet3D = lazy(() => import('./Pet3D'))
 
@@ -16,6 +18,8 @@ declare global {
     desktopPet?: {
       isDesktop: true
       onCursor(cb: (pos: { x: number; y: number; w: number; h: number }) => void): () => void
+      getSnapshot(): Promise<import('../lib/petSync').PetSnapshot | null>
+      onSnapshot(cb: (snap: import('../lib/petSync').PetSnapshot) => void): () => void
       setInteractive(on: boolean): void
       dragStart(offset: { x: number; y: number }): void
       dragEnd(): void
@@ -101,11 +105,28 @@ export function PetWindow({ courses, homework, settings }: Props) {
     return () => bridge?.setInteractive(false)
   }, [bridge, hover])
 
+  /* 网页推过来的快照优先:桌面版自己的库是空的,数据得靠这个通道 */
+  const [snap, setSnap] = useState<PetSnapshot | null>(null)
+  useEffect(() => {
+    if (!bridge?.getSnapshot) return
+    let alive = true
+    bridge.getSnapshot().then((s) => {
+      if (alive && s) setSnap(s)
+    })
+    const off = bridge.onSnapshot?.((s) => setSnap(s))
+    return () => {
+      alive = false
+      off?.()
+    }
+  }, [bridge])
+
   const current = useMemo(() => currentSession(courses, settings, now), [courses, settings, now])
   const next = useMemo(() => nextSession(courses, settings, now), [courses, settings, now])
   const week = currentWeek(settings, now)
 
   const line = useMemo(() => {
+    // 有快照就用快照(它含课程 + 行程),这才是和网页同步的那份数据
+    if (snap) return snapshotHeadline(snap).text
     if (current) return `正在上《${current.course.name}》`
     if (next) {
       const wd = WEEKDAY_CN[(next.start.getDay() === 0 ? 7 : next.start.getDay()) - 1]
@@ -113,9 +134,9 @@ export function PetWindow({ courses, homework, settings }: Props) {
       return `${sameDay ? '' : `周${wd} `}${formatHHMM(next.start)}《${next.course.name}》`
     }
     return courses.length ? '今天没课~' : '还没有课表'
-  }, [current, next, now, courses.length])
+  }, [snap, current, next, now, courses.length])
 
-  const sleepy = !current && !next
+  const sleepy = snap ? snap.today.length === 0 && snap.events.length === 0 : !current && !next
 
   /* 拖动窗口:偏移量 = 鼠标在窗口内的位置,主进程据此跟随 */
   const onPointerDown = (e: React.PointerEvent) => {
@@ -170,7 +191,7 @@ export function PetWindow({ courses, homework, settings }: Props) {
         </Suspense>
       </div>
 
-      <div className="mt-1 text-[9.5px] font-bold text-ink/45 tracking-wide">第 {week} 周</div>
+      <div className="mt-1 text-[9.5px] font-bold text-ink/45 tracking-wide">第 {snap?.week ?? week} 周</div>
     </div>
   )
 }

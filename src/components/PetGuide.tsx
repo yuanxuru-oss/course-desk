@@ -41,6 +41,8 @@ export function PetGuide({ open, onClose, onToast }: Props) {
   const toggle = (next: boolean) => {
     setWanted(next)
     setPending(true)
+    // 打开时让 App 立刻推一次快照(否则要等下次数据变化才同步)
+    if (next) window.dispatchEvent(new CustomEvent('coursedesk:pet-wanted'))
     const ok = callProtocol(next ? 'open' : 'hide')
     if (!ok) {
       onToast('这台设备还没安装桌宠,先下载一个吧', 'info')
