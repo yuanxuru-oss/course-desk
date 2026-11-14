@@ -38,6 +38,18 @@ Electron 自带运行时、而且有现成的**全局鼠标位置** API(`screen.
 - 左键:显示 / 隐藏桌宠
 - 右键菜单:打开课程桌 / 开机自启开关 / 退出
 
+## 打包版里的两个脚本
+
+发布包(Releases 里的 zip)里有:
+
+- `启动桌宠.cmd` —— 注册 `coursedesk://` 协议 + 带 `--no-sandbox` 启动
+- `创建桌面快捷方式.cmd` / `make-shortcut.cmd` —— 在桌面建一个带参数的快捷方式
+
+这两个脚本**刻意只用 ASCII**:之前用中文文件名 + UTF-8 写,cmd 按 GBK 读会变乱码,
+`CreateShortcut` 拿到非法路径返回 null,于是报「找不到 WorkingDirectory / IconLocation」。
+路径相关的东西现在全部在 PowerShell 里用 `[Environment]::GetFolderPath` 现算,
+桌面目录叫「桌面」也不受影响。
+
 ## 位置记忆
 
 拖到哪,关掉再开还在原处(存在 userData 的 pet-window.json)。
