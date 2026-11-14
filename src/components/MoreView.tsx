@@ -43,8 +43,8 @@ export function MoreView({ settings, onNavigate, onToast, petVisible, onTogglePe
     {
       key: 'pet',
       icon: <Smartphone size={17} />,
-      label: petVisible ? '桌宠:开' : '桌宠:关',
-      desc: '住在页面右下角的小兔,拖得动、点一下看今日安排',
+      label: petVisible ? '网页内桌宠:开' : '网页内桌宠:关',
+      desc: '桌面版没开时的备用:住在页面右下角。桌面上那只请双击 desktop/start-pet.vbs',
       onClick: onTogglePet,
     },
     {

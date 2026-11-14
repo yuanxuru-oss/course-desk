@@ -72,6 +72,7 @@ export function PetWindow({ courses, homework, settings }: Props) {
     return () => clearInterval(t)
   }, [])
 
+
   /* 全局鼠标 → 眼睛朝向(-1 ~ 1) */
   useEffect(() => {
     if (!bridge) {

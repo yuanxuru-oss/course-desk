@@ -245,14 +245,17 @@ export function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          'relative shrink-0 w-12 h-7 rounded-full transition-colors mt-0.5 border-2 border-[#241f1a]/10',
-          checked ? 'bg-tangerine-500' : 'bg-butter-200',
+          'relative shrink-0 w-12 h-7 rounded-full transition-colors mt-0.5 border-2',
+          checked
+            ? 'bg-tangerine-500 border-tangerine-600/30'
+            : 'bg-ink/[0.14] border-ink/[0.06]',
         )}
       >
+        {/* 必须显式给 left:绝对定位元素不写 left 时会落在静态位置,圆钮会跑到右边 */}
         <span
           className={cn(
-            'absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow transition-transform',
-            checked ? 'translate-x-[22px]' : 'translate-x-[2px]',
+            'absolute left-[2px] top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-sm transition-transform',
+            checked ? 'translate-x-[22px]' : 'translate-x-0',
           )}
         />
       </button>

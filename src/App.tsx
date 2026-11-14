@@ -26,6 +26,7 @@ import { MoreView } from './components/MoreView'
 
 import { QuickCapture } from './components/QuickCapture'
 import { PetOverlay } from './components/PetOverlay'
+import { PetGuide } from './components/PetGuide'
 import { PetWindow } from './components/PetWindow'
 import { runTick, materializeTemplates } from './lib/reminderEngine'
 import { cleanupDuplicateCourses } from './lib/actions'
@@ -97,10 +98,13 @@ export function App() {
   const { settings, ready, init, toasts, dismissToast, toast } = useApp()
   const [route, setRoute] = useState<Route>(readRoute)
   /** 桌宠:住在页面里的悬浮小兔,开/关记在本地 */
-  const [petVisible, setPetVisible] = useState(() => localStorage.getItem('coursedesk:petVisible') !== '0')
+  const [petVisible, setPetVisible] = useState(() => localStorage.getItem('coursedesk:petVisible') === '1')
+  const [petGuideOpen, setPetGuideOpen] = useState(false)
   useEffect(() => {
     localStorage.setItem('coursedesk:petVisible', petVisible ? '1' : '0')
   }, [petVisible])
+
+
 
   useEffect(() => {
     init()
@@ -274,14 +278,17 @@ export function App() {
 
         <div className="mt-5 pt-4 border-t-2 border-[#241f1a]/10">
           <button
-            onClick={() => setPetVisible((v) => !v)}
+            onClick={() => setPetGuideOpen(true)}
+            title="桌面版是小窗;网页内那只默认关闭,避免桌面上两只"
             className="w-full flex items-center gap-3 pl-3.5 pr-3 h-9 rounded-xl text-[13px] font-semibold text-ink-soft hover:bg-white/70 transition-colors"
           >
             <span className="nav-icon">
               <StarIcon size={18} color={petVisible ? '#F4CE4E' : '#C9BDB1'} className="-translate-x-[0.25px]" />
             </span>
             桌宠
-            <span className="ml-auto text-[10.5px] font-bold text-ink-mute">{petVisible ? '开' : '关'}</span>
+            <span className="ml-auto text-[10.5px] font-bold text-ink-mute">
+              {petVisible ? '网页内' : '桌面版'}
+            </span>
           </button>
         </div>
       </aside>
@@ -376,6 +383,14 @@ export function App() {
       </nav>
 
       <ToastHost items={toasts} onDismiss={dismissToast} />
+
+      <PetGuide
+        open={petGuideOpen}
+        onClose={() => setPetGuideOpen(false)}
+        petVisible={petVisible}
+        onToggleWebPet={() => setPetVisible((v) => !v)}
+        onToast={toast}
+      />
 
       {/* 桌宠:页面内悬浮,不弹窗 */}
       <PetOverlay
