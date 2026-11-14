@@ -79,6 +79,7 @@ let win = null
 let tray = null
 let cursorTimer = null
 let dragOffset = null
+let dragStamp = 0
 
 /*
  * 自定义协议 coursedesk://
@@ -319,7 +320,15 @@ function createWindow() {
     if (!win || win.isDestroyed()) return
     const p = screen.getCursorScreenPoint()
 
-    // 拖拽中:窗口跟着鼠标走(透明窗没有标题栏,不能靠系统拖)
+    /*
+     * 拖拽中:窗口跟着鼠标走(透明窗没有标题栏,不能靠系统拖)。
+     * 加一个 900ms 的看门狗:鼠标离开窗口时渲染端可能收不到 pointerup,
+     * dragOffset 会一直挂着 —— 那就会表现为「桌宠粘着鼠标跑,甩不掉」。
+     */
+    if (dragOffset && Date.now() - dragStamp > 900) {
+      dragOffset = null
+      if (!win.isDestroyed()) win.webContents.send('pet:drag-cancel')
+    }
     if (dragOffset) {
       win.setPosition(Math.round(p.x - dragOffset.x), Math.round(p.y - dragOffset.y))
     }
@@ -378,6 +387,12 @@ ipcMain.on('pet:interactive', (_e, on) => {
 
 ipcMain.on('pet:drag-start', (_e, offset) => {
   dragOffset = { x: Math.round(offset.x), y: Math.round(offset.y) }
+  dragStamp = Date.now()
+})
+
+/* 拖动过程中鼠标每次移动都会续一次命,看门狗据此判断是否还在拖 */
+ipcMain.on('pet:drag-move', () => {
+  dragStamp = Date.now()
 })
 
 ipcMain.on('pet:drag-end', () => {

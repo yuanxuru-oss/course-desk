@@ -32,6 +32,16 @@ contextBridge.exposeInMainWorld('desktopPet', {
   dragEnd() {
     ipcRenderer.send('pet:drag-end')
   },
+  /** 拖动中每次移动续命,主进程用它判断是否还在拖 */
+  dragMove() {
+    ipcRenderer.send('pet:drag-move')
+  },
+  /** 主进程发现拖动超时(鼠标离开窗口),通知渲染端复位 */
+  onDragCancel(cb) {
+    const handler = () => cb()
+    ipcRenderer.on('pet:drag-cancel', handler)
+    return () => ipcRenderer.removeListener('pet:drag-cancel', handler)
+  },
   menu() {
     ipcRenderer.send('pet:menu')
   },

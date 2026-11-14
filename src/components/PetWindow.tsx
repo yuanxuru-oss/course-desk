@@ -23,6 +23,8 @@ declare global {
       setInteractive(on: boolean): void
       dragStart(offset: { x: number; y: number }): void
       dragEnd(): void
+      dragMove?: () => void
+      onDragCancel?: (cb: () => void) => () => void
       menu(): void
       quit(): void
       openApp(): void
@@ -138,29 +140,56 @@ export function PetWindow({ courses, homework, settings }: Props) {
 
   const sleepy = snap ? snap.today.length === 0 && snap.events.length === 0 : !current && !next
 
-  /* 拖动窗口:偏移量 = 鼠标在窗口内的位置,主进程据此跟随 */
+  /*
+   * 拖动窗口:偏移量 = 鼠标在窗口内的位置,主进程据此跟随。
+   *
+   * 关键点:鼠标一离开窗口,窗口就切回"穿透",pointerup 收不到 ——
+   * 拖动状态会永远挂着,表现为「桌宠粘着鼠标甩不掉」。
+   * 所以除了 pointerup,还在 window 上挂 pointerup / pointercancel / blur 兜底,
+   * 主进程那边另有 900ms 看门狗兜第二层。
+   */
+  const endDrag = () => {
+    if (!dragInfo.current.active) return
+    const wasDrag = dragInfo.current.moved > 4
+    dragInfo.current.active = false
+    if (wasDrag) bridge?.dragEnd()
+    else setHop((h) => h + 1)
+  }
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button === 2) return
     dragInfo.current = { active: true, moved: 0, ox: e.clientX, oy: e.clientY }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
   }
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragInfo.current.active) return
     dragInfo.current.moved += Math.abs(e.movementX) + Math.abs(e.movementY)
     if (dragInfo.current.moved > 4 && bridge) {
       bridge.dragStart({ x: dragInfo.current.ox, y: dragInfo.current.oy })
+      bridge.dragMove?.()
     }
   }
-  const onPointerUp = () => {
-    const wasDrag = dragInfo.current.moved > 4
-    dragInfo.current.active = false
-    if (wasDrag) {
-      bridge?.dragEnd()
-    } else {
-      // 点一下:蹦一下
-      setHop((h) => h + 1)
+
+  useEffect(() => {
+    const stop = () => {
+      if (dragInfo.current.active) {
+        dragInfo.current.active = false
+        if (dragInfo.current.moved > 4) bridge?.dragEnd()
+      }
     }
-  }
+    window.addEventListener('pointerup', stop)
+    window.addEventListener('pointercancel', stop)
+    window.addEventListener('blur', stop)
+    const offCancel = bridge?.onDragCancel?.(() => {
+      dragInfo.current.active = false
+    })
+    return () => {
+      window.removeEventListener('pointerup', stop)
+      window.removeEventListener('pointercancel', stop)
+      window.removeEventListener('blur', stop)
+      offCancel?.()
+    }
+  }, [bridge])
 
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center select-none bg-transparent overflow-hidden">
@@ -171,7 +200,7 @@ export function PetWindow({ courses, homework, settings }: Props) {
       <div
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
+        onPointerUp={endDrag}
         onPointerEnter={() => setHover(true)}
         onPointerLeave={() => setHover(false)}
         onContextMenu={(e) => {
