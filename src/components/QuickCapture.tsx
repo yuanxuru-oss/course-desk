@@ -137,7 +137,7 @@ export function QuickCapture({ settings, onToast }: Props) {
         <button
           onClick={grab}
           title="从剪贴板读取微信消息,自动识别成行程"
-          className="fixed z-[45] bottom-24 right-4 lg:bottom-[76px] lg:right-6 h-11 pl-3.5 pr-4 rounded-full bg-tangerine-500 text-white shadow-sticker-lg flex items-center gap-1.5 text-[13px] font-extrabold hover:bg-tangerine-600 active:translate-y-[1px] active:shadow-none transition-all"
+          className="fixed z-[45] bottom-24 right-4 lg:bottom-[76px] lg:right-6 h-11 pl-3.5 pr-4 rounded-full bg-tangerine-500 text-white shadow-sticker-lg flex items-center gap-1.5 text-[13px] font-bold hover:bg-tangerine-600 active:translate-y-[1px] active:shadow-none transition-all"
         >
           <ClipboardPaste size={16} />
           速记
@@ -153,7 +153,7 @@ export function QuickCapture({ settings, onToast }: Props) {
           >
             <div className="px-4 pt-3.5 pb-2 flex items-center gap-2">
               <ClipboardPaste size={13} style={{ color: EVENT_COLOR }} className="shrink-0" />
-              <span className="text-[12.5px] font-extrabold" style={{ color: EVENT_COLOR }}>
+              <span className="text-[12.5px] font-bold" style={{ color: EVENT_COLOR }}>
                 把消息粘到这里
               </span>
               <button
@@ -228,7 +228,7 @@ export function QuickCapture({ settings, onToast }: Props) {
             >
               <div className="flex items-center gap-2">
                 <Zap size={13} style={{ color: EVENT_COLOR }} className="shrink-0" />
-                <span className="text-[12.5px] font-extrabold" style={{ color: EVENT_COLOR }}>
+                <span className="text-[12.5px] font-bold" style={{ color: EVENT_COLOR }}>
                   识别到一条行程
                 </span>
                 <button
@@ -240,7 +240,7 @@ export function QuickCapture({ settings, onToast }: Props) {
                 </button>
               </div>
 
-              <div className="mt-2 text-[16px] font-extrabold text-ink truncate">{hit.parsed.title}</div>
+              <div className="mt-2 text-[16px] font-bold text-ink truncate">{hit.parsed.title}</div>
               <div className="text-[12.5px] text-ink-soft font-bold mt-0.5">
                 {fmtWhen(hit.parsed.date, hit.parsed.weekly)} · {hit.parsed.start}–{hit.parsed.end}
               </div>

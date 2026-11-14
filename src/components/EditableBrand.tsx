@@ -67,7 +67,7 @@ export function EditableAvatar({ size = 'md' }: { size?: 'sm' | 'md' }) {
         type="button"
         onDoubleClick={() => setOpen((v) => !v)}
         title="双击换头像"
-        className={`${box} bg-tangerine-500 grid place-items-center font-extrabold text-white shadow-sticker-sm overflow-hidden`}
+        className={`${box} bg-tangerine-500 grid place-items-center font-bold text-white shadow-sticker-sm overflow-hidden`}
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt="头像" className="w-full h-full object-cover" />
@@ -185,8 +185,8 @@ export function EditableBrand() {
       <EditableAvatar />
       <div className="min-w-0">
         <EditableName
-          className="font-extrabold text-ink text-[17px] leading-tight tracking-tight"
-          inputClassName="font-extrabold text-ink text-[17px] leading-tight tracking-tight"
+          className="font-bold text-ink text-[17px] leading-tight tracking-tight"
+          inputClassName="font-bold text-ink text-[17px] leading-tight tracking-tight"
         />
         <div className="text-[11px] text-ink-soft font-medium truncate">第 {week} 教学周</div>
         <div className="text-[10.5px] text-ink-mute font-medium truncate">

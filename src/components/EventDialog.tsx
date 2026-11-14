@@ -132,7 +132,7 @@ export function EventDialog({ open, event, settings, onClose, onSave, onDelete }
         >
           <div className="flex items-center gap-1.5 mb-2">
             <Zap size={13} style={{ color: EVENT_COLOR }} className="shrink-0" />
-            <span className="text-[12px] font-extrabold" style={{ color: EVENT_COLOR }}>
+            <span className="text-[12px] font-bold" style={{ color: EVENT_COLOR }}>
               粘贴聊天消息
             </span>
             <span className="text-[11px] text-ink-mute truncate">
@@ -174,7 +174,7 @@ export function EventDialog({ open, event, settings, onClose, onSave, onDelete }
                 <Check size={12} className="text-grass-600 shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <div className="text-[11.5px] text-ink-soft">
-                    <span className="font-extrabold" style={{ color: EVENT_COLOR }}>
+                    <span className="font-bold" style={{ color: EVENT_COLOR }}>
                       {parsed.title}
                     </span>
                     <span className="text-ink-mute">
@@ -218,7 +218,7 @@ export function EventDialog({ open, event, settings, onClose, onSave, onDelete }
         >
           <span className="text-[18px] leading-none">{kind.icon}</span>
           <div className="min-w-0">
-            <div className="text-[12.5px] font-extrabold" style={{ color: EVENT_COLOR }}>
+            <div className="text-[12.5px] font-bold" style={{ color: EVENT_COLOR }}>
               {form.title || '未命名行程'}
             </div>
             <div className="text-[11px] text-ink-mute">

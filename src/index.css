@@ -48,7 +48,7 @@ body {
   margin: 0;
   background: var(--app-bg);
   color: #241f1a;
-  font-family: 'Fredoka', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
@@ -236,5 +236,91 @@ body {
   .pet-blink {
     transform-box: fill-box;
     transform-origin: center;
+  }
+}
+
+/* ============ 排版基座 ============
+   拉丁字母/数字用 Inter(自托管,只有 latin 子集,47KB),
+   中文走系统字体(PingFang SC / 微软雅黑 / Noto Sans SC)。
+   这是中文产品最常见的专业搭配:西文精确、中文跟随系统渲染。
+   数字统一等宽(tabular),时间、周次、分数才不会跳动。 */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/inter-latin-var.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Inter 的可变特性:数字等宽、字母更几何 */
+    font-feature-settings: 'cv05' 1, 'ss03' 1, 'tnum' 1;
+    font-optical-sizing: auto;
+  }
+
+  body {
+    font-family: 'Inter', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.65;
+    letter-spacing: -0.003em;
+    color: #241f1a;
+  }
+
+  /* 大字号收紧字距、字号越大越紧 —— 专业排版默认规矩 */
+  h1, .t-display {
+    letter-spacing: -0.022em;
+    line-height: 1.08;
+    font-weight: 680;
+  }
+  h2 {
+    letter-spacing: -0.016em;
+    line-height: 1.24;
+    font-weight: 650;
+  }
+  h3, h4 {
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    font-weight: 620;
+  }
+
+  /* 所有数字默认等宽:时间、周次、进度不会抖 */
+  .tnum, time, .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* 小标签:全大写 + 拉开字距,是"专业系统"最便宜的一招 */
+  .t-label {
+    font-size: 10.5px;
+    line-height: 1.3;
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+
+/* 细滚动条:默认滚动条太粗,拉低质感 */
+@layer utilities {
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(36, 31, 26, 0.18) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: rgba(36, 31, 26, 0.16);
+    border-radius: 999px;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
   }
 }

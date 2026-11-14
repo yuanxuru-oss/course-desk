@@ -142,7 +142,7 @@ export function PetWindow({ courses, homework, settings }: Props) {
 
   return (
     <div className="w-screen h-screen flex flex-col items-center justify-center select-none bg-transparent overflow-hidden">
-      <div className="pointer-events-auto bubble mb-1 max-w-[190px] px-2.5 py-1 rounded-2xl text-[11px] font-extrabold text-ink bg-white/85 border-2 border-ink/70 shadow-sm text-center">
+      <div className="pointer-events-auto bubble mb-1 max-w-[190px] px-2.5 py-1 rounded-2xl text-[11px] font-bold text-ink bg-white/85 border-2 border-ink/70 shadow-sm text-center">
         {line}
       </div>
 

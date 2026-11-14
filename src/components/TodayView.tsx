@@ -86,7 +86,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
       {/* 问候 */}
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-[26px] font-extrabold tracking-tight text-ink leading-none">{greeting}</h1>
+          <h1 className="text-[26px] font-bold tracking-tight text-ink leading-none">{greeting}</h1>
           <p className="text-[13px] text-ink-soft font-medium mt-2">
             {now.getMonth() + 1} 月 {now.getDate()} 日 · 星期{WEEKDAY_CN[(now.getDay() === 0 ? 7 : now.getDay()) - 1]} · 第{' '}
             {Math.max(1, dateToWeek(now, settings.semesterStart))} 教学周
@@ -115,7 +115,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className="text-[11px] font-extrabold px-2.5 py-1 rounded-full"
+                  className="text-[11px] font-bold px-2.5 py-1 rounded-full"
                   style={{ background: `${heroFg}1f`, color: heroFg }}
                 >
                   {current ? '正在上课' : '下一节课'}
@@ -125,7 +125,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
                   {hero.periods > 1 ? `-${hero.period + hero.periods - 1}` : ''}节
                 </span>
               </div>
-              <h2 className="text-[24px] sm:text-[28px] font-extrabold tracking-tight truncate" style={{ color: heroFg }}>
+              <h2 className="text-[24px] sm:text-[28px] font-bold tracking-tight truncate" style={{ color: heroFg }}>
                 {hero.course.name}
               </h2>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-[13px] font-medium" style={{ color: `${heroFg}d0` }}>
@@ -144,7 +144,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
                 </span>
               </div>
               {!current && (
-                <div className="mt-3 inline-block text-[12.5px] font-extrabold px-3 py-1 rounded-full" style={{ background: `${heroFg}1f`, color: heroFg }}>
+                <div className="mt-3 inline-block text-[12.5px] font-bold px-3 py-1 rounded-full" style={{ background: `${heroFg}1f`, color: heroFg }}>
                   {countdown(hero.start.getTime(), now.getTime())}后开始
                 </div>
               )}
@@ -178,7 +178,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
         {/* 今日课程 */}
         <SoftCard className="overflow-hidden bg-white">
           <div className="px-4 py-3 border-b-2 border-ink/[0.08] flex items-center justify-between">
-            <h3 className="font-extrabold text-ink text-[15px]">今日课程</h3>
+            <h3 className="font-bold text-ink text-[15px]">今日课程</h3>
             <span className="text-[11px] font-bold text-ink-mute bg-butter-100 px-2 py-0.5 rounded-full">
               {today.length} 节
             </span>
@@ -194,7 +194,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
                 return (
                   <div key={`${s.course.id}-${s.period}`} className="flex items-center gap-3 px-4 py-3">
                     <div className="w-[62px] shrink-0 text-center">
-                      <div className={cn('text-[12.5px] font-extrabold tabular-nums', isNow ? 'text-tangerine-600' : 'text-ink')}>
+                      <div className={cn('text-[12.5px] font-bold tabular-nums', isNow ? 'text-tangerine-600' : 'text-ink')}>
                         {formatHHMM(s.start)}
                       </div>
                       <div className="text-[10.5px] text-ink-mute font-semibold tabular-nums">– {formatHHMM(s.end)}</div>
@@ -223,7 +223,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
         {/* 作业 */}
         <SoftCard className="overflow-hidden bg-white">
           <div className="px-4 py-3 border-b-2 border-ink/[0.08] flex items-center justify-between gap-2">
-            <h3 className="font-extrabold text-ink text-[15px]">待交作业</h3>
+            <h3 className="font-bold text-ink text-[15px]">待交作业</h3>
             <Segmented
               value={filter}
               onChange={setFilter}
@@ -268,7 +268,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
       {todayEvents.length > 0 && (
         <SoftCard className="overflow-hidden bg-white">
           <div className="px-4 py-3 border-b-2 border-ink/[0.08] flex items-center justify-between">
-            <h3 className="font-extrabold text-ink text-[15px] inline-flex items-center gap-1.5">
+            <h3 className="font-bold text-ink text-[15px] inline-flex items-center gap-1.5">
               <Flag size={14} style={{ color: EVENT_COLOR }} /> 今日行程
             </h3>
             <span
@@ -284,7 +284,7 @@ export function TodayView({ courses, events, homework, settings, onNavigate, onT
               return (
                 <div key={`${o.event.id}-${o.date}`} className="px-4 py-3 flex items-center gap-3">
                   <div className="w-[62px] shrink-0 text-center">
-                    <div className="text-[12.5px] font-extrabold tabular-nums text-ink">{o.event.start}</div>
+                    <div className="text-[12.5px] font-bold tabular-nums text-ink">{o.event.start}</div>
                     <div className="text-[10.5px] text-ink-mute font-semibold tabular-nums">– {o.event.end}</div>
                   </div>
                   <div

@@ -86,7 +86,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
         <span className="inline-flex items-center gap-2">
           已删除「{c.name}」
           <button
-            className="text-[12px] font-extrabold text-tangerine-600 hover:text-tangerine-700 underline underline-offset-2"
+            className="text-[12px] font-bold text-tangerine-600 hover:text-tangerine-700 underline underline-offset-2"
             onClick={async () => {
               await upsertCourse(c)
               message.destroy()
@@ -198,7 +198,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
               <div className="text-[10.5px] font-bold tracking-[0.18em] text-white/65 uppercase">
                 {settings.weekCount} 周 · 你的课程表
               </div>
-              <h1 className="mt-2 flex items-baseline gap-2 text-[30px] sm:text-[34px] font-extrabold tracking-[-0.02em] text-white leading-none">
+              <h1 className="mt-2 flex items-baseline gap-2 text-[30px] sm:text-[34px] font-bold tracking-[-0.02em] text-white leading-none">
                 第 {week} 周
                 {week === thisWeek && (
                   <span className="text-[11px] font-bold tracking-normal text-white/70 bg-white/15 px-2 py-0.5 rounded-full">
@@ -298,7 +298,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
         <div className="rounded-[16px] border border-ink/[0.07] bg-white/70 px-4 py-3">
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-tangerine-500 shrink-0" />
-            <span className="text-[12.5px] font-extrabold text-ink whitespace-nowrap">本周赶课提醒</span>
+            <span className="text-[12.5px] font-bold text-ink whitespace-nowrap">本周赶课提醒</span>
             <Badge color="#E5763A">{risks.length} 处</Badge>
             {/* 移动端只给一句摘要,把版面让给课表 */}
             <span className="ml-auto text-[11.5px] text-ink-mute truncate lg:hidden">
@@ -409,7 +409,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                   >
                     <span
                       className={cn(
-                        'text-[14px] font-extrabold',
+                        'text-[14px] font-bold',
                         isToday ? 'text-tangerine-700' : 'text-ink',
                       )}
                     >
@@ -433,7 +433,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                     className="absolute inset-x-0 text-center pt-1.5"
                     style={{ top: (p.index - 1) * ROW_H, height: ROW_H }}
                   >
-                    <div className="text-[11.5px] font-extrabold text-ink">{p.index}</div>
+                    <div className="text-[11.5px] font-bold text-ink">{p.index}</div>
                     <div className="text-[10px] text-ink-mute leading-tight font-medium">{p.start}</div>
                   </div>
                 ))}
@@ -503,7 +503,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                             trigger="hover"
                             mouseEnterDelay={0.45}
                             placement="right"
-                            title={<span className="text-[12.5px] font-extrabold">{c.name}</span>}
+                            title={<span className="text-[12.5px] font-bold">{c.name}</span>}
                             content={
                               <div className="w-[172px] space-y-1 text-[11.5px]">
                                 <div className="text-ink-soft">
@@ -555,7 +555,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                             }}
                           >
                             <div
-                              className="text-[12.5px] font-extrabold leading-tight line-clamp-2"
+                              className="text-[12.5px] font-bold leading-tight line-clamp-2"
                               style={{ color: fg }}
                             >
                               {c.name}
@@ -564,7 +564,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                             <div className="mt-1 flex items-center gap-1">
                               {range && (
                                 <div
-                                  className="inline-flex items-center gap-0.5 px-1 py-[1px] rounded-full text-[9.5px] font-extrabold tabular-nums whitespace-nowrap shrink-0"
+                                  className="inline-flex items-center gap-0.5 px-1 py-[1px] rounded-full text-[9.5px] font-bold tabular-nums whitespace-nowrap shrink-0"
                                   style={{ background: `${fg}26`, color: fg }}
                                   title={`第${startPeriod}${periods.length > 1 ? `-${startPeriod + periods.length - 1}` : ''}节 ${range.label}`}
                                 >
@@ -637,7 +637,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                         >
                           <div
                             className={cn(
-                              'font-extrabold leading-tight line-clamp-2 text-ink',
+                              'font-bold leading-tight line-clamp-2 text-ink',
                               narrow ? 'text-[11px]' : 'text-[12.5px]',
                             )}
                             title={ev.title}
@@ -647,7 +647,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                           </div>
                           <div
                             className={cn(
-                              'mt-1 inline-flex items-center gap-0.5 rounded-full font-extrabold tabular-nums whitespace-nowrap shrink-0',
+                              'mt-1 inline-flex items-center gap-0.5 rounded-full font-bold tabular-nums whitespace-nowrap shrink-0',
                               narrow ? 'text-[8.5px] px-1 py-[1px]' : 'text-[9.5px] px-1 py-[1px]',
                             )}
                             style={{ background: `${EVENT_COLOR}26`, color: EVENT_COLOR }}
@@ -676,7 +676,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Flag size={16} className="text-ink-mute" />
-          <h2 className="text-[15px] font-extrabold text-ink">本周行程</h2>
+          <h2 className="text-[15px] font-bold text-ink">本周行程</h2>
           <span className="text-xs text-ink-mute font-medium">{occurrences.length} 项</span>
           <Button size="sm" variant="secondary" onClick={openNewEvent} className="ml-auto">
             <Plus size={13} /> 加行程
@@ -722,14 +722,14 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                   }}
                 >
                   <div
-                    className="w-11 shrink-0 rounded-xl grid place-items-center text-[11px] font-extrabold py-1.5"
+                    className="w-11 shrink-0 rounded-xl grid place-items-center text-[11px] font-bold py-1.5"
                     style={{ background: `${EVENT_COLOR}1f`, color: EVENT_COLOR, border: `1.5px solid ${EVENT_COLOR}45` }}
                   >
                     {shortDate(o.date)}
                     <span className="text-[10px] font-bold">周{weekdayLabel(o.weekday)}</span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-extrabold text-ink truncate">
+                    <div className="text-[13.5px] font-bold text-ink truncate">
                       <span className="mr-1">{meta.icon}</span>
                       {ev.title}
                       {ev.weekly && <Repeat size={11} className="inline ml-1 text-ink-mute align-middle" />}
@@ -753,7 +753,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
       <div>
         <div className="flex items-center gap-2 mb-3">
           <CalendarRange size={16} className="text-ink-mute" />
-          <h2 className="text-[15px] font-extrabold text-ink">本学期课程</h2>
+          <h2 className="text-[15px] font-bold text-ink">本学期课程</h2>
           <span className="text-xs text-ink-mute font-medium">{courses.length} 门</span>
         </div>
         {courses.length === 0 ? (
@@ -791,7 +791,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                       className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-butter-50 transition-colors"
                     >
                       <div
-                        className="w-9 h-9 rounded-xl grid place-items-center shrink-0 text-[12px] font-extrabold"
+                        className="w-9 h-9 rounded-xl grid place-items-center shrink-0 text-[12px] font-bold"
                         style={{ background: color, color: fg }}
                       >
                         {c.period}
@@ -809,7 +809,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                         </div>
                       </div>
                       {range && (
-                        <span className="shrink-0 text-[11.5px] font-extrabold text-ink-soft tabular-nums bg-butter-100 px-2 py-1 rounded-full">
+                        <span className="shrink-0 text-[11.5px] font-bold text-ink-soft tabular-nums bg-butter-100 px-2 py-1 rounded-full">
                           {range.label}
                         </span>
                       )}

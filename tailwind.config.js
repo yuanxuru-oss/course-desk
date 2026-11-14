@@ -82,8 +82,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Fredoka', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
-        display: ['Fredoka', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '"PingFang SC"', '"HarmonyOS Sans SC"', '"Microsoft YaHei"', '"Noto Sans SC"', 'system-ui', 'sans-serif'],
+        display: ['Inter', '"PingFang SC"', '"HarmonyOS Sans SC"', '"Microsoft YaHei"', '"Noto Sans SC"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {

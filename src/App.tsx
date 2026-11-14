@@ -292,7 +292,7 @@ export function App() {
           <div className="flex items-center gap-2.5">
             <EditableAvatar size="sm" />
             <div>
-              <div className="font-extrabold text-ink text-sm leading-tight">{current?.label ?? '课程桌'}</div>
+              <div className="font-bold text-ink text-sm leading-tight">{current?.label ?? '课程桌'}</div>
               <div className="text-[10px] text-ink-mute font-medium">第 {week} 周</div>
             </div>
           </div>

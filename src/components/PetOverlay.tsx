@@ -283,7 +283,7 @@ export function PetOverlay({ courses, homework, settings, visible, onClose }: Pr
         {open && (
           <div className="pointer-events-auto absolute bottom-full mb-1.5 right-0 w-[228px] rounded-2xl bg-[#fffdf5] border-[2.5px] border-ink shadow-sticker-lg p-3 animate-slide-up">
             <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-[11px] font-extrabold tracking-[0.14em] text-ink-mute">今天</span>
+              <span className="text-[11px] font-bold tracking-[0.14em] text-ink-mute">今天</span>
               <span className="text-[11px] font-bold text-tangerine-600">第 {week} 周</span>
               <button onClick={onClose} title="收起桌宠" className="ml-auto text-ink-mute hover:text-ink">
                 <X size={12} />
@@ -318,7 +318,7 @@ export function PetOverlay({ courses, homework, settings, visible, onClose }: Pr
 
             {pending.length > 0 && (
               <>
-                <div className="mt-2.5 mb-1 text-[11px] font-extrabold tracking-[0.14em] text-ink-mute">待交作业</div>
+                <div className="mt-2.5 mb-1 text-[11px] font-bold tracking-[0.14em] text-ink-mute">待交作业</div>
                 <div className="space-y-0.5">
                   {pending.map((h) => (
                     <div key={h.id} className="flex items-center gap-1.5">
@@ -348,7 +348,7 @@ export function PetOverlay({ courses, homework, settings, visible, onClose }: Pr
             className="pointer-events-auto absolute bottom-full mb-1 right-0 w-[186px] text-left bg-white border-[2.5px] border-ink rounded-2xl px-2.5 py-1.5 shadow-sticker-sm"
             title="点我看今天的安排"
           >
-            <div className="text-[11.5px] leading-snug font-extrabold text-ink line-clamp-2">{line.text}</div>
+            <div className="text-[11.5px] leading-snug font-bold text-ink line-clamp-2">{line.text}</div>
             {line.hint?.trim() && (
               <div className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-ink-mute">
                 {current ? <MapPin size={9} /> : <Clock size={9} />}
