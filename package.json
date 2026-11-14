@@ -10,7 +10,7 @@
     "preview": "vite preview --host --port 4173",
     "typecheck": "tsc --noEmit",
     "server": "node server/index.js",
-    "desktop": "electron desktop/main.cjs",
+    "desktop": "electron --no-sandbox desktop/main.cjs",
     "test": "node --experimental-strip-types scripts/test-parsers.mjs && node --experimental-strip-types scripts/test-import.mjs && node --experimental-strip-types scripts/test-pdf.mjs && node --experimental-strip-types scripts/test-grid.mjs",
     "test:smoke": "python3 scripts/smoke.py",
     "shot": "python3 scripts/screenshot.py",

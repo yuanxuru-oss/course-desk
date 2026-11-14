@@ -85,6 +85,22 @@ function createWindow() {
   win.on('unresponsive', () => console.error('[pet] 窗口无响应'))
 
   /*
+   * 调试用:设 PET_SHOT=路径 会把窗口内容截图存下来(不依赖屏幕捕获,能直接看渲染端画了什么)
+   */
+  if (process.env.PET_SHOT) {
+    setTimeout(async () => {
+      try {
+        const img = await win.webContents.capturePage()
+        require('node:fs').writeFileSync(process.env.PET_SHOT, img.toPNG())
+        console.log('[pet] 已保存窗口截图:', process.env.PET_SHOT)
+      } catch (err) {
+        console.error('[pet] 截图失败', err)
+      }
+      if (process.env.PET_SHOT_EXIT) app.quit()
+    }, 6000)
+  }
+
+  /*
    * 全局鼠标位置:每 40ms 推一次(25Hz)。
    * 只算相对窗口的坐标,渲染端据此让头和眼珠转向鼠标 —— 这就是「眼神跟随」的数据源。
    */

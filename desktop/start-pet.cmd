@@ -20,7 +20,7 @@ echo The pet window should appear at the bottom-right of your screen.
 echo Keep this window open. Close it or press Ctrl+C to stop the pet.
 echo.
 
-"node_modules\electron\dist\electron.exe" "desktop\main.cjs"
+"node_modules\electron\dist\electron.exe" --no-sandbox "desktop\main.cjs"
 
 echo.
 echo [pet] exited with code %ERRORLEVEL%

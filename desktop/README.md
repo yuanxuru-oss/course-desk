@@ -14,6 +14,23 @@ Electron 自带运行时、而且有现成的**全局鼠标位置** API(`screen.
 直接调 
 ode_modules 里的 Electron 启动。
 
+## 为什么必须带 --no-sandbox
+
+这台机器上 Chromium 的沙箱初始化会失败,表现是进程**瞬间退出、退出码 -2147483645**
+(即 Windows 的 STATUS_BREAKPOINT),窗口一个都不出现。
+启动脚本和 
+pm run desktop 都已经带上了 --no-sandbox,一般不用管。
+
+如果手动跑,记得:
+`powershell
+$env:ELECTRON_RUN_AS_NODE=""
+.\node_modules\electron\dist\electron.exe --no-sandbox desktop\main.cjs
+`
+
+后面两个参数缺一不可:
+- 不带 --no-sandbox → 闪退,退出码 -2147483645
+- 留着 ELECTRON_RUN_AS_NODE → 被当成普通 Node 跑,提示「没有以 GUI 模式启动」
+
 ## 出问题先跑诊断
 
 双击 **`desktop/diagnose.cmd`**,它会检查:环境变量、Electron 是否装好、版本号、网页能不能访问。
