@@ -42,6 +42,16 @@ export function PetWindow({ courses, homework, settings }: Props) {
   const [hop, setHop] = useState(0)
   const dragInfo = useRef({ active: false, moved: 0, ox: 0, oy: 0 })
 
+  /** 没有 WebGL(远程桌面 / 老显卡 / 关了硬件加速)就退回 2D,别让窗口变成一片空白 */
+  const webglOK = useMemo(() => {
+    try {
+      const c = document.createElement('canvas')
+      return !!(c.getContext('webgl2') || c.getContext('webgl'))
+    } catch {
+      return false
+    }
+  }, [])
+
   /* 透明背景:外壳里要让窗口后面的桌面透出来 */
   useEffect(() => {
     const html = document.documentElement
@@ -151,7 +161,11 @@ export function PetWindow({ courses, homework, settings }: Props) {
         title="拖我走 · 双击打开课程桌 · 右键菜单"
       >
         <Suspense fallback={<Bunny sleepy={sleepy} size={150} />}>
-          <Pet3D state="idle" facing={look.x >= 0 ? 1 : -1} sleepy={sleepy} look={look} hopPulse={hop} />
+          {webglOK ? (
+            <Pet3D state="idle" facing={look.x >= 0 ? 1 : -1} sleepy={sleepy} look={look} hopPulse={hop} />
+          ) : (
+            <Bunny sleepy={sleepy} size={150} />
+          )}
         </Suspense>
       </div>
 

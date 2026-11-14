@@ -51,7 +51,8 @@ function createWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     focusable: true,
-    show: false,
+    // 直接显示:等 ready-to-show 的话,页面慢一点窗口就一直不出现,看起来像没启动
+    show: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -70,6 +71,18 @@ function createWindow() {
   win.webContents.on('did-fail-load', (_e, code, desc) => {
     console.error('[pet] 页面加载失败', code, desc, PET_URL)
   })
+
+  /* ---------- 日志:出问题时黑窗口里能看出卡在哪一步 ---------- */
+  win.webContents.on('console-message', (_e, level, message, line, source) => {
+    if (level >= 2) console.log('[pet:页面]', message, `(${source}:${line})`)
+  })
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error('[pet] 渲染进程挂了:', details.reason, details.exitCode)
+  })
+  win.webContents.on('preload-error', (_e, p, err) => {
+    console.error('[pet] preload 出错:', p, err)
+  })
+  win.on('unresponsive', () => console.error('[pet] 窗口无响应'))
 
   /*
    * 全局鼠标位置:每 40ms 推一次(25Hz)。
