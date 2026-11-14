@@ -76,11 +76,14 @@ body {
 @layer components {
   /* ================= 应用骨架 ================= */
   .app-shell {
-    @apply min-h-full flex bg-[#fdf6e4];
+    /* 暖白底 + 极淡的上方渐变,比纯色更有层次,也不抢内容 */
+    @apply min-h-full flex bg-[#FBF7EE];
+    background-image: linear-gradient(180deg, #fdfaf3 0%, #fbf7ee 46%, #f8f2e6 100%);
   }
 
   .sidebar {
-    @apply hidden lg:flex flex-col w-[248px] shrink-0 bg-[#fbeaa4] border-r-2 border-[#241f1a]/10;
+    @apply hidden lg:flex flex-col w-[248px] shrink-0 border-r border-[#241f1a]/[0.07];
+    background: linear-gradient(180deg, #faf3dd 0%, #f7efd9 100%);
   }
 
   /* ================= 侧栏对齐栅格 =================
@@ -102,8 +105,16 @@ body {
     @apply bg-white/60;
   }
 
+  /* 选中态:白色浮起 + 左侧 3px 主色条,比整块填充更克制 */
   .nav-primary.active {
-    @apply bg-tangerine-500 text-white shadow-sticker-sm;
+    @apply bg-white text-ink shadow-soft relative;
+  }
+  .nav-primary.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full bg-tangerine-500;
+  }
+  .nav-primary.active .nav-icon {
+    @apply text-tangerine-600;
   }
 
   /* 二级导航:学习伙伴 —— 安静、小一号(与一级共用同一条对齐线) */
@@ -160,11 +171,11 @@ body {
 
   /* ================= 卡片 ================= */
   .card {
-    @apply bg-white rounded-[28px] border-2 border-[#241f1a]/10 shadow-sticker;
+    @apply bg-white rounded-[20px] border border-[#241f1a]/[0.07] shadow-soft;
   }
 
   .card-soft {
-    @apply rounded-[24px] border-2 border-[#241f1a]/[0.08];
+    @apply rounded-[16px] border border-[#241f1a]/[0.06] bg-white/60;
   }
 
   /* ================= Markdown ================= */

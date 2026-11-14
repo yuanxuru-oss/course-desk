@@ -293,7 +293,7 @@ export function App() {
             <EditableAvatar size="sm" />
             <div>
               <div className="font-extrabold text-ink text-sm leading-tight">{current?.label ?? '课程桌'}</div>
-              <div className="text-[10px] text-ink-mute font-medium">第 {week} 教学周</div>
+              <div className="text-[10px] text-ink-mute font-medium">第 {week} 周</div>
             </div>
           </div>
           <div className="text-[11px] text-ink-mute font-medium">{settings.schoolName || semesterRange(settings)}</div>

@@ -87,11 +87,15 @@ export default {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        // 厚实贴纸感硬阴影
-        sticker: '4px 4px 0 0 rgba(36,31,26,.10)',
-        'sticker-sm': '3px 3px 0 0 rgba(36,31,26,.09)',
-        'sticker-lg': '6px 6px 0 0 rgba(36,31,26,.10)',
-        pop: '0 10px 30px -12px rgba(36,31,26,.35)',
+        // 柔和分层阴影:一档近、一档远,去掉硬边贴纸感
+        soft: '0 1px 2px rgba(36,31,26,.04), 0 6px 16px -10px rgba(36,31,26,.14)',
+        'soft-lg': '0 2px 4px rgba(36,31,26,.04), 0 18px 40px -20px rgba(36,31,26,.20)',
+        'soft-sm': '0 1px 2px rgba(36,31,26,.05)',
+        // 兼容旧类名(仍在用的地方),但改成柔和的
+        sticker: '0 1px 2px rgba(36,31,26,.04), 0 6px 16px -10px rgba(36,31,26,.14)',
+        'sticker-sm': '0 1px 2px rgba(36,31,26,.04)',
+        'sticker-lg': '0 2px 4px rgba(36,31,26,.04), 0 18px 40px -20px rgba(36,31,26,.20)',
+        pop: '0 18px 44px -18px rgba(36,31,26,.28)',
       },
       borderRadius: {
         '4xl': '2rem',

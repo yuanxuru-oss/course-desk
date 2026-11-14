@@ -276,7 +276,7 @@ export function PetOverlay({ courses, homework, settings, visible, onClose }: Pr
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-[48] pointer-events-none">
+    <div className="fixed inset-0 z-[48] pointer-events-none hidden lg:block">
       {/* 锚点 = 兔子的左上角;气泡和面板都挂在它上方,不会把兔子挤出屏幕 */}
       <div ref={wrapRef} className="absolute left-0 top-0 will-change-transform" style={{ width: PET_W, height: PET_H }}>
         {/* 展开的今日信息 */}

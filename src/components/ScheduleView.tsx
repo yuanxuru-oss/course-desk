@@ -187,45 +187,46 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
 
   return (
     <div className="space-y-5">
-      {/* ============ 主角页头:橙色横幅 ============ */}
-      <section className="relative overflow-hidden rounded-[32px] bg-tangerine-500 shadow-sticker-lg">
-        {/* 装饰星 */}
-        <StarIcon size={26} color="#F8DF7C" className="absolute top-5 right-16 animate-twinkle" />
-        <StarIcon size={17} color="#7B92DC" className="absolute top-12 right-32 animate-twinkle" />
-        <StarIcon size={20} color="#FFFFFF" className="absolute bottom-16 left-1/3 opacity-80" />
-        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" />
-        <div className="absolute -left-12 -bottom-16 w-44 h-44 rounded-full bg-butter-300/20" />
-
-        <div className="relative px-5 pt-6 pb-7 sm:px-8 sm:pt-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-3">
-                <Star size={11} fill="#F8DF7C" strokeWidth={0} color="#F8DF7C" />
-                你的课程表
+      {/* ============ 页头:克制的一块暖色,承载周次与操作 ============ */}
+      <section
+        className="relative overflow-hidden rounded-[20px] shadow-soft-lg"
+        style={{ background: 'linear-gradient(135deg, #EE7C3C 0%, #E5763A 46%, #D4642A 100%)' }}
+      >
+        <div className="relative px-5 pt-5 pb-5 sm:px-7 sm:pt-6 sm:pb-6">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+            <div className="min-w-0">
+              <div className="text-[10.5px] font-bold tracking-[0.18em] text-white/65 uppercase">
+                {settings.weekCount} 周 · 你的课程表
               </div>
-              <h1 className="text-3xl lg:text-[40px] font-extrabold tracking-tight text-white leading-none">
-                第 {week} 教学周
+              <h1 className="mt-2 flex items-baseline gap-2 text-[30px] sm:text-[34px] font-extrabold tracking-[-0.02em] text-white leading-none">
+                第 {week} 周
+                {week === thisWeek && (
+                  <span className="text-[11px] font-bold tracking-normal text-white/70 bg-white/15 px-2 py-0.5 rounded-full">
+                    本周
+                  </span>
+                )}
               </h1>
-              <p className="text-white/75 text-[13px] font-medium mt-2">
+              <p className="mt-2 text-[12px] text-white/70 tabular-nums">
                 {monday.getMonth() + 1}/{monday.getDate()} 起 · 本周 {visible.length} 门课
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="flex items-center bg-white/20 rounded-full p-1 gap-0.5">
+            {/* 操作区:所有控件统一 36px 高、同一圆角,严格对齐 */}
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+              <div className="flex items-center rounded-[10px] bg-white/[0.14] h-9 overflow-hidden">
                 <Tooltip title="上一周" mouseEnterDelay={0.4}>
                   <button
                     onClick={() => setWeek((w) => Math.max(1, w - 1))}
-                    className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
+                    className="w-8 h-9 text-white/90 hover:bg-white/15 grid place-items-center transition-colors"
                     aria-label="上一周"
                   >
-                    <ChevronLeft size={18} />
+                    <ChevronLeft size={16} />
                   </button>
                 </Tooltip>
                 <Tooltip title={week === thisWeek ? '现在就是本周' : '回到本周'} mouseEnterDelay={0.4}>
                   <button
                     onClick={() => setWeek(thisWeek)}
-                    className="px-3 h-9 rounded-full text-white text-[13px] font-bold hover:bg-white/25 transition-colors whitespace-nowrap"
+                    className="px-2.5 h-9 text-white text-[12.5px] font-bold hover:bg-white/15 transition-colors whitespace-nowrap"
                   >
                     本周
                   </button>
@@ -233,61 +234,60 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                 <Tooltip title="下一周" mouseEnterDelay={0.4}>
                   <button
                     onClick={() => setWeek((w) => Math.min(settings.weekCount, w + 1))}
-                    className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
+                    className="w-8 h-9 text-white/90 hover:bg-white/15 grid place-items-center transition-colors"
                     aria-label="下一周"
                   >
-                    <ChevronRight size={18} />
+                    <ChevronRight size={16} />
                   </button>
                 </Tooltip>
               </div>
-              <Select
-                value={week}
-                onChange={setWeek}
-                className="w-[104px]"
-                size="middle"
-                popupMatchSelectWidth={140}
+
+              <div className="hidden w-[108px] shrink-0 sm:block">
+                <Select
+                  value={week}
+                  onChange={setWeek}
+                  className="w-full"
+                  size="middle"
+                  popupMatchSelectWidth={132}
                 options={Array.from({ length: settings.weekCount }, (_, i) => ({
                   label: `第 ${i + 1} 周`,
                   value: i + 1,
                 }))}
-                aria-label="跳到某一周"
-              />
-              <Button
-                variant="secondary"
-                size="md"
+                  aria-label="跳到某一周"
+                />
+              </div>
+
+              <button
                 onClick={openNew}
-                className="!bg-white !text-ink !border-ink/[0.15] shadow-sticker-sm !px-4 sm:!px-5"
+                className="inline-flex shrink-0 items-center gap-1.5 h-9 px-3.5 rounded-[10px] bg-white text-ink text-[12.5px] font-bold hover:bg-white/90 active:translate-y-[1px] transition-all shadow-soft-sm"
               >
-                <Plus size={16} /> 加课
-              </Button>
-              <Button
-                variant="secondary"
-                size="md"
+                <Plus size={15} /> 加课
+              </button>
+              <button
                 onClick={openNewEvent}
                 title="添加行程:学生会会议、党会、讲座等"
-                className="!bg-white !text-ink !border-ink/[0.15] shadow-sticker-sm !px-3 sm:!px-5"
+                className="inline-flex shrink-0 items-center gap-1.5 h-9 px-3 rounded-[10px] border border-white/25 text-white text-[12.5px] font-bold hover:bg-white/12 active:translate-y-[1px] transition-all"
               >
-                <Flag size={16} /> <span className="hidden sm:inline">加行程</span>
-              </Button>
+                <Flag size={15} /> <span className="hidden sm:inline">加行程</span>
+              </button>
             </div>
           </div>
 
-          {/* 图例:实心 = 课程,斜纹 = 行程 */}
-          <div className="relative mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-semibold text-white/80">
+          {/* 图例:细线 + 小方块,不用颜色本身说话 */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[10.5px] font-medium text-white/60">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-3.5 h-3.5 rounded-[5px] bg-white/90 border-2 border-white/60" />
-              课程(实心色块)
+              <span className="w-2.5 h-2.5 rounded-[3px] bg-white/85" />
+              课程
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span
-                className="w-3.5 h-3.5 rounded-[5px] border-2 border-dashed"
+                className="w-2.5 h-2.5 rounded-[3px] border border-white/45"
                 style={{
-                  borderColor: '#F8DF7C',
                   backgroundImage:
-                    'repeating-linear-gradient(45deg, rgba(248,223,124,.55) 0 2px, transparent 2px 5px)',
+                    'repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 1.5px, transparent 1.5px 4px)',
                 }}
               />
-              行程(斜纹纸片)
+              行程
             </span>
           </div>
         </div>
@@ -295,7 +295,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
 
       {/* ============ 赶课提醒(移动端折叠成一行,不抢课表) ============ */}
       {risks.length > 0 && (
-        <div className="rounded-[22px] bg-white border-2 border-ink/10 px-4 py-3">
+        <div className="rounded-[16px] border border-ink/[0.07] bg-white/70 px-4 py-3">
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-tangerine-500 shrink-0" />
             <span className="text-[12.5px] font-extrabold text-ink whitespace-nowrap">本周赶课提醒</span>
@@ -320,8 +320,8 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
       )}
 
       {/* ============ 筛选条(Ant Design Select / Checkbox / Tag) ============ */}
-      <div className="flex flex-wrap items-center gap-2 rounded-[22px] bg-white border-2 border-ink/[0.08] px-3 py-2.5">
-        <span className="text-[11.5px] font-extrabold text-ink-mute tracking-wide">筛选</span>
+      <div className="flex flex-wrap items-center gap-2.5 rounded-[14px] border border-ink/[0.07] bg-white/75 px-3 py-2">
+        <span className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-ink-mute">筛选</span>
 
         <Select
           mode="multiple"
@@ -332,7 +332,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
           options={courseOptions}
           placeholder="按课程"
           className="min-w-[132px] max-w-[220px]"
-          size="small"
+          size="middle"
         />
         <Select
           mode="multiple"
@@ -343,7 +343,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
           options={teacherOptions}
           placeholder="按教师"
           className="min-w-[120px] max-w-[200px]"
-          size="small"
+          size="middle"
         />
         <Checkbox checked={onlyHomework} onChange={(e) => setOnlyHomework(e.target.checked)}>
           <span className="text-[12px] font-semibold">只看有作业</span>
@@ -366,7 +366,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
 
       {/* ============ 本周无课 / 筛选无结果 ============ */}
       {courses.length > 0 && visible.length === 0 && (
-        <div className="rounded-[22px] bg-white border-2 border-ink/[0.08] py-2">
+        <div className="rounded-[16px] border border-ink/[0.07] bg-white/70 py-2">
           <AntEmpty
             image={AntEmpty.PRESENTED_IMAGE_SIMPLE}
             description={
@@ -389,7 +389,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
       )}
 
       {/* ============ 课表网格(视觉主角) ============ */}
-      <Card className="overflow-hidden !rounded-[32px]">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <div className="min-w-[760px]">
             {/* 表头 */}
@@ -404,19 +404,19 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                     key={w}
                     className={cn(
                       'flex-1 min-w-[96px] py-3 text-center',
-                      isToday ? 'bg-tangerine-500' : '',
+                      isToday ? 'bg-tangerine-500/[0.10]' : '',
                     )}
                   >
                     <span
                       className={cn(
                         'text-[14px] font-extrabold',
-                        isToday ? 'text-white' : 'text-ink',
+                        isToday ? 'text-tangerine-700' : 'text-ink',
                       )}
                     >
                       星期{w}
                     </span>
                     {isToday && (
-                      <span className="block text-[10px] font-bold text-white/80 mt-0.5">今天</span>
+                      <span className="block text-[10px] font-bold text-tangerine-600/80 mt-0.5">今天</span>
                     )}
                   </div>
                 )
@@ -550,8 +550,8 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                               top: (startPeriod - 1) * ROW_H + 3,
                               height: periods.length * ROW_H - 6,
                               background: color,
-                              border: `2px solid ${color}`,
-                              boxShadow: '3px 3px 0 0 rgba(36,31,26,.16)',
+                              border: '1px solid rgba(255,255,255,.30)',
+                              boxShadow: '0 1px 2px rgba(36,31,26,.05), 0 6px 16px -10px rgba(36,31,26,.20)',
                             }}
                           >
                             <div
@@ -632,7 +632,7 @@ export function ScheduleView({ courses, events, homework, settings, onToast }: P
                             left: `calc(${(p.lane * 100) / p.lanes}% + 4px)`,
                             width: `calc(${100 / p.lanes}% - 8px)`,
                             ...eventBlockStyle(EVENT_COLOR),
-                            boxShadow: '3px 3px 0 0 rgba(36,31,26,.13)',
+                        boxShadow: '0 1px 2px rgba(36,31,26,.04), 0 6px 16px -10px rgba(36,31,26,.16)',
                           }}
                         >
                           <div

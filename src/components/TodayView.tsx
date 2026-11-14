@@ -357,7 +357,7 @@ function HomeworkRow({
           setBusy(true)
           await toggleHomework(hw.id)
           setBusy(false)
-          onToast(hw.done ? '已恢复为待办' : '已标记完成 👍', 'success')
+          onToast(hw.done ? '已恢复为待办' : '已标记完成', 'success')
         }}
         disabled={busy}
         className="shrink-0 text-ink-mute/40 hover:text-grass-500 transition-colors"

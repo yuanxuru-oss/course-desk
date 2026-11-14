@@ -315,7 +315,7 @@ export function SettingsView({ settings, onToast }: Props) {
                 size="sm"
                 variant="ghost"
                 onClick={async () => {
-                  const ok = await showNotification('课程桌 · 测试通知', '这是一条测试消息,说明通知工作正常 👍')
+                  const ok = await showNotification('课程桌 · 测试通知', '这是一条测试消息,说明通知工作正常')
                   onToast(ok ? '测试通知已发送' : '通知未发送(权限未授予)', ok ? 'success' : 'error')
                 }}
               >

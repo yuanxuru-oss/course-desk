@@ -47,7 +47,7 @@ export function AntdTheme({ children }: { children: ReactNode }) {
           },
           Popover: { colorBgElevated: '#FFFDF5' },
           Tooltip: { colorBgSpotlight: '#241F1A' },
-          Checkbox: { colorPrimary: '#E5763A' },
+          Checkbox: { colorPrimary: '#E5763A', borderRadiusSM: 4 },
           Empty: { colorTextDescription: '#9A8F84' },
           Modal: { contentBg: '#FFFDF5', headerBg: '#FFFDF5', titleFontSize: 16 },
           Message: { contentBg: '#FFFDF5' },
