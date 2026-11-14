@@ -12,12 +12,10 @@ interface Props {
   settings: Settings
   onNavigate: (r: 'import' | 'settings') => void
   onToast: (text: string, type?: 'info' | 'success' | 'error') => void
-  petVisible: boolean
-  onTogglePet: () => void
 }
 
 /** 移动端「更多」页:放桌面导航放不下的入口 */
-export function MoreView({ settings, onNavigate, onToast, petVisible, onTogglePet }: Props) {
+export function MoreView({ settings, onNavigate, onToast }: Props) {
   const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null)
   const [installable, setInstallable] = useState(canInstall())
 
@@ -40,13 +38,7 @@ export function MoreView({ settings, onNavigate, onToast, petVisible, onTogglePe
       desc: `课程提前 ${settings.courseLeadMinutes} 分钟 · 作业提前 ${settings.homeworkLeadMinutes} 分钟`,
       onClick: () => onNavigate('settings'),
     },
-    {
-      key: 'pet',
-      icon: <Smartphone size={17} />,
-      label: petVisible ? '网页内桌宠:开' : '网页内桌宠:关',
-      desc: '桌面版没开时的备用:住在页面右下角。桌面上那只请双击 desktop/start-pet.vbs',
-      onClick: onTogglePet,
-    },
+
     {
       key: 'install',
       icon: <Sparkles size={17} />,

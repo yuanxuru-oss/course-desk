@@ -25,7 +25,6 @@ import { SettingsView } from './components/SettingsView'
 import { MoreView } from './components/MoreView'
 
 import { QuickCapture } from './components/QuickCapture'
-import { PetOverlay } from './components/PetOverlay'
 import { PetGuide } from './components/PetGuide'
 import { PetWindow } from './components/PetWindow'
 import { runTick, materializeTemplates } from './lib/reminderEngine'
@@ -98,11 +97,8 @@ export function App() {
   const { settings, ready, init, toasts, dismissToast, toast } = useApp()
   const [route, setRoute] = useState<Route>(readRoute)
   /** 桌宠:住在页面里的悬浮小兔,开/关记在本地 */
-  const [petVisible, setPetVisible] = useState(() => localStorage.getItem('coursedesk:petVisible') === '1')
+  /** 桌宠只保留桌面版(Electron 外壳):网页里不再画兔子 */
   const [petGuideOpen, setPetGuideOpen] = useState(false)
-  useEffect(() => {
-    localStorage.setItem('coursedesk:petVisible', petVisible ? '1' : '0')
-  }, [petVisible])
 
 
 
@@ -279,15 +275,15 @@ export function App() {
         <div className="mt-5 pt-4 border-t-2 border-[#241f1a]/10">
           <button
             onClick={() => setPetGuideOpen(true)}
-            title="桌面版是小窗;网页内那只默认关闭,避免桌面上两只"
+            title="桌宠是一个独立的桌面小窗,浏览器关掉也在"
             className="w-full flex items-center gap-3 pl-3.5 pr-3 h-9 rounded-xl text-[13px] font-semibold text-ink-soft hover:bg-white/70 transition-colors"
           >
             <span className="nav-icon">
-              <StarIcon size={18} color={petVisible ? '#F4CE4E' : '#C9BDB1'} className="-translate-x-[0.25px]" />
+              <StarIcon size={18} color="#F4CE4E" className="-translate-x-[0.25px]" />
             </span>
             桌宠
             <span className="ml-auto text-[10.5px] font-bold text-ink-mute">
-              {petVisible ? '网页内' : '桌面版'}
+              桌面版
             </span>
           </button>
         </div>
@@ -342,7 +338,7 @@ export function App() {
               <ImportView settings={settings} onToast={toast} onDone={() => navigate('schedule')} />
             )}
             {route === 'settings' && <SettingsView settings={settings} onToast={toast} />}
-            {route === 'more' && <MoreView settings={settings} onNavigate={navigate} onToast={toast} petVisible={petVisible} onTogglePet={() => setPetVisible((v) => !v)} />}
+            {route === 'more' && <MoreView settings={settings} onNavigate={navigate} onToast={toast} />}
           </div>
         </main>
       </div>
@@ -384,22 +380,8 @@ export function App() {
 
       <ToastHost items={toasts} onDismiss={dismissToast} />
 
-      <PetGuide
-        open={petGuideOpen}
-        onClose={() => setPetGuideOpen(false)}
-        petVisible={petVisible}
-        onToggleWebPet={() => setPetVisible((v) => !v)}
-        onToast={toast}
-      />
+      <PetGuide open={petGuideOpen} onClose={() => setPetGuideOpen(false)} onToast={toast} />
 
-      {/* 桌宠:页面内悬浮,不弹窗 */}
-      <PetOverlay
-        courses={courses}
-        homework={homework}
-        settings={settings}
-        visible={petVisible}
-        onClose={() => setPetVisible(false)}
-      />
 
       {/* 全局速记:在哪儿按 Ctrl+V 都能自动识别成行程 */}
       <QuickCapture settings={settings} onToast={toast} />

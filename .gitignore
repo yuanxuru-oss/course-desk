@@ -28,3 +28,6 @@ Thumbs.db
 
 # 本地 npm 缓存(避免污染仓库)
 .npm-cache/
+
+# 桌宠打包产物(几百 MB,不进仓库,发布到 Releases)
+dist-desktop/

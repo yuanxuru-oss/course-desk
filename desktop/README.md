@@ -42,6 +42,13 @@ Electron 自带运行时、而且有现成的**全局鼠标位置** API(`screen.
 
 拖到哪,关掉再开还在原处(存在 userData 的 pet-window.json)。
 
+## 下载现成的(推荐普通用户)
+
+去 [Releases](https://github.com/yuanxuru-oss/course-desk/releases/latest) 下 `CourseDeskPet-win-x64-*.zip`,
+解压后双击 **启动桌宠.cmd**;想更顺手再双击 **创建桌面快捷方式.cmd**,以后点桌面图标。
+
+> 为什么不直接双击 exe:部分机器上 Chromium 沙箱起不来会闪退,启动脚本会补 `--no-sandbox`。
+
 ## 最简单:双击启动
 
 直接双击 **[desktop/start-pet.cmd](start-pet.cmd)**(纯英文名,避免中文文件名在 cmd 里乱码) —— 它会绕开 npm 和 PowerShell 的执行策略,

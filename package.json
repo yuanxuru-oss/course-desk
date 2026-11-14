@@ -1,9 +1,41 @@
 {
   "name": "course-desk",
   "private": true,
+  "main": "desktop/main.cjs",
   "version": "0.1.0",
   "type": "module",
   "description": "大学生电子桌面课程表 · PWA",
+  "build": {
+    "appId": "cn.coursedesk.pet",
+    "productName": "CourseDeskPet",
+    "asar": true,
+    "npmRebuild": false,
+    "compression": "maximum",
+    "electronLanguages": ["zh-CN", "en-US"],
+    "directories": {
+      "output": "dist-desktop",
+      "buildResources": "build"
+    },
+    "files": [
+      "desktop/main.cjs",
+      "desktop/preload.cjs",
+      "public/icons/icon-192.png",
+      "package.json",
+      "!node_modules/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "portable": {
+      "artifactName": "CourseDeskPet-${version}-portable.exe"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -11,6 +43,7 @@
     "typecheck": "tsc --noEmit",
     "server": "node server/index.js",
     "desktop": "electron --no-sandbox desktop/main.cjs",
+    "desktop:build": "electron-builder --win portable",
     "test": "node --experimental-strip-types scripts/test-parsers.mjs && node --experimental-strip-types scripts/test-import.mjs && node --experimental-strip-types scripts/test-pdf.mjs && node --experimental-strip-types scripts/test-grid.mjs",
     "test:smoke": "python3 scripts/smoke.py",
     "shot": "python3 scripts/screenshot.py",
@@ -41,6 +74,7 @@
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.3",

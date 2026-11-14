@@ -39,6 +39,35 @@ if (process.env.PET_USERDATA) {
   }
 }
 
+/* 打包后没有控制台,设 PET_LOG=<文件> 就能把启动过程写下来,方便排查 */
+const LOG_FILE = process.env.PET_LOG || ''
+function log(...args) {
+  if (!LOG_FILE) return
+  try {
+    require('node:fs').appendFileSync(LOG_FILE, '' + new Date().toISOString() + ' ' + args.join(' ') + '\n')
+  } catch {}
+}
+
+process.on('uncaughtException', (err) => {
+  log('[致命]', err && err.stack ? err.stack : String(err))
+})
+process.on('unhandledRejection', (err) => {
+  log('[未处理 Promise]', err && err.stack ? err.stack : String(err))
+})
+
+log('[启动] version=', app.getVersion(), 'packaged=', app.isPackaged)
+
+/*
+ * 有些机器(装了某些安全软件 / 组策略)上 Chromium 的沙箱进程起不来,
+ * 表现是双击后进程瞬间退出、退出码 -2147483645(STATUS_BREAKPOINT)。
+ * 在命令行加 --no-sandbox 就好了,但双击 exe 没法带参数,所以这里在应用内补上。
+ */
+if (!process.argv.includes('--no-sandbox') && !process.argv.includes('--enable-sandbox')) {
+  app.commandLine.appendSwitch('no-sandbox')
+  app.commandLine.appendSwitch('disable-gpu-sandbox')
+  log('[启动] 已内置 no-sandbox')
+}
+
 /** 桌宠页面(默认线上;本地调式可用 PET_URL=http://localhost:5173/#/pet) */
 const PET_URL = process.env.PET_URL || 'https://yuanxuru-oss.github.io/course-desk/#/pet'
 const APP_URL = process.env.APP_URL || 'https://yuanxuru-oss.github.io/course-desk/'
@@ -284,8 +313,18 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
-    createWindow()
-    buildTray()
+    log('[ready] createWindow')
+    try {
+      createWindow()
+    } catch (err) {
+      log('[窗口创建失败]', err && err.stack ? err.stack : String(err))
+    }
+    try {
+      buildTray()
+      log('[tray] ok')
+    } catch (err) {
+      log('[托盘失败]', err && err.stack ? err.stack : String(err))
+    }
   })
 }
 
