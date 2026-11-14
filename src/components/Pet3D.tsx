@@ -7,6 +7,10 @@ interface Props {
   facing: 1 | -1
   sleepy?: boolean
   excited?: boolean
+  /** 眼睛朝向,取值 -1~1;桌面外壳里由全局鼠标位置换算而来 */
+  look?: { x: number; y: number }
+  /** 每次点击递增,用来触发一次蹦跳 */
+  hopPulse?: number
 }
 
 /**
@@ -20,10 +24,10 @@ interface Props {
  *   - meowverlay 的性能经验:帧率要压、不可见时别渲染
  * 所以这里锁 40fps,页面隐藏时直接停。
  */
-export default function Pet3D({ state, facing, sleepy = false, excited = false }: Props) {
+export default function Pet3D({ state, facing, sleepy = false, excited = false, look, hopPulse = 0 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const stateRef = useRef({ state, facing, sleepy, excited })
-  stateRef.current = { state, facing, sleepy, excited }
+  const stateRef = useRef({ state, facing, sleepy, excited, look, hopPulse })
+  stateRef.current = { state, facing, sleepy, excited, look, hopPulse }
 
   useEffect(() => {
     const host = hostRef.current
@@ -38,8 +42,9 @@ export default function Pet3D({ state, facing, sleepy = false, excited = false }
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
-    camera.position.set(0, 2.15, 6.6)
-    camera.lookAt(0, 1.65, 0)
+    // 取景:让「耳朵尖 ~ 脚底」正好落在画面里,四周留一点空气
+    camera.position.set(0, 2.3, 9.6)
+    camera.lookAt(0, 1.62, 0)
 
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
     renderer.setClearColor(0x000000, 0)
@@ -176,6 +181,7 @@ export default function Pet3D({ state, facing, sleepy = false, excited = false }
     const clock = new THREE.Clock()
     let raf = 0
     let blinkAt = 2 + Math.random() * 3
+    let lastPulse = 0
     let last = 0
     const FPS_CAP = 40
 
@@ -187,8 +193,14 @@ export default function Pet3D({ state, facing, sleepy = false, excited = false }
       if (document.hidden) return
 
       const t = clock.getElapsedTime()
-      const { state: st, facing: face, excited: x } = stateRef.current
+      const { state: st, facing: face, excited: x, look: lk, hopPulse: pulse } = stateRef.current
       const sleeping = st === 'sleep'
+
+      // 外部点了它一下 → 蹦起来
+      if (pulse !== lastPulse) {
+        lastPulse = pulse
+        hop = 1
+      }
 
       const bobSpeed = x ? 2.2 : st === 'walk' ? 3.4 : st === 'sleep' ? 0.7 : 1.25
       const bobAmp = st === 'walk' ? 0.075 : x ? 0.09 : sleeping ? 0.02 : 0.05
@@ -197,11 +209,24 @@ export default function Pet3D({ state, facing, sleepy = false, excited = false }
 
       root.position.y = -0.9 + (reduced ? 0 : Math.sin(t * bobSpeed) * bobAmp) + jump
 
-      // 朝向:走路时转向,平时略微侧脸
-      const faceTarget = st === 'walk' ? face * 0.5 : 0.18
-      root.rotation.y += (faceTarget - root.rotation.y) * 0.12
-      head.rotation.x += (target.y - head.rotation.x) * 0.06
+      /*
+       * 朝向:身子几乎不动,主要靠**转头**看你。
+       * 一开始让整个 root 转,结果鼠标移到边上时整只兔子侧过去、脸都看不见了 —— 太夸张。
+       */
+      const bodyYaw = st === 'walk' ? face * 0.26 : lk ? lk.x * 0.1 : 0.05
+      root.rotation.y += (bodyYaw - root.rotation.y) * 0.1
+
+      const headYaw = lk ? lk.x * 0.62 : 0
+      head.rotation.y += (headYaw - head.rotation.y) * 0.14
+      const pitchTarget = lk ? lk.y * 0.26 : target.y
+      head.rotation.x += (pitchTarget - head.rotation.x) * 0.1
       head.rotation.z = sleeping ? 0.14 : 0
+
+      // 眼珠再往鼠标方向偏一点,近看就是"眼神跟着走"
+      if (lk) {
+        eyes.position.x += (lk.x * 0.05 - eyes.position.x) * 0.18
+        eyes.position.y += (-lk.y * 0.04 - eyes.position.y) * 0.18
+      }
 
       // 走路时轻轻晃;被拎起来时往后仰
       root.rotation.z =

@@ -179,6 +179,22 @@
 
 装完有独立图标,断网也能打开。
 
+### 想要「真·桌宠」:浮在其他窗口上面的那种
+
+网页做不到透明置顶窗口,得套一层壳(Electron)。仓库里已经写好了:
+
+```bash
+# 首次会下载约 100MB 运行时,国内建议先设镜像
+# PowerShell: $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+npm install
+npm run desktop
+```
+
+出来的是一个**透明、无边框、置顶、不挡鼠标**的小窗:只有一只兔子站在桌面上,
+**眼神跟着你的系统鼠标转**(头转、眼珠偏),拖得动,双击打开课程桌,右键退出。
+
+细节和实现说明在 [desktop/README.md](desktop/README.md)。
+
 ---
 
 # 四、几个大家都会问的问题

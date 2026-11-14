@@ -26,6 +26,7 @@ import { MoreView } from './components/MoreView'
 
 import { QuickCapture } from './components/QuickCapture'
 import { PetOverlay } from './components/PetOverlay'
+import { PetWindow } from './components/PetWindow'
 import { runTick, materializeTemplates } from './lib/reminderEngine'
 import { cleanupDuplicateCourses } from './lib/actions'
 import { currentWeek, semesterRange } from './lib/time'
@@ -41,6 +42,7 @@ type Route =
   | 'import'
   | 'settings'
   | 'more'
+  | 'pet'
 
 interface NavItem {
   key: Route
@@ -86,6 +88,8 @@ function readRoute(): Route {
   const found = ALL.find((n) => n.key === raw)
   if (found) return found.key
   if (raw === 'more') return 'more'
+  // 桌面外壳里只需要一只兔子:整页透明,由 Electron 窗口决定外形
+  if (raw === 'pet') return 'pet'
   return 'schedule' // 主角默认落地
 }
 
@@ -192,6 +196,11 @@ export function App() {
         正在启动课程桌…
       </div>
     )
+  }
+
+  /* 桌面外壳里的纯桌宠页:整页透明,只画一只兔子 */
+  if (route === 'pet') {
+    return <PetWindow courses={courses} homework={homework} settings={settings} />
   }
 
   return (

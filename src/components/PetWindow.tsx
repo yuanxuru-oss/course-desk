@@ -1,0 +1,161 @@
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import type { Course, Homework, Settings } from '../types'
+import { currentSession, nextSession, currentWeek, formatHHMM, WEEKDAY_CN } from '../lib/time'
+import { Bunny } from './PetBunny'
+
+const Pet3D = lazy(() => import('./Pet3D'))
+
+interface Props {
+  courses: Course[]
+  homework: Homework[]
+  settings: Settings
+}
+
+declare global {
+  interface Window {
+    desktopPet?: {
+      isDesktop: true
+      onCursor(cb: (pos: { x: number; y: number; w: number; h: number }) => void): () => void
+      setInteractive(on: boolean): void
+      dragStart(offset: { x: number; y: number }): void
+      dragEnd(): void
+      menu(): void
+      quit(): void
+      openApp(): void
+    }
+  }
+}
+
+/**
+ * 桌面外壳里跑的「纯桌宠」页面(#/pet)。
+ *
+ * 和网页里的 PetOverlay 的区别:
+ *   - 背景透明、没有页面底色(Electron 窗口才是透明的)
+ *   - 眼神跟着**系统全局鼠标**走(坐标由主进程 screen.getCursorScreenPoint 推过来)
+ *   - 拖动时窗口跟着鼠标走;鼠标不在兔子身上时窗口鼠标穿透,不挡后面的操作
+ */
+export function PetWindow({ courses, homework, settings }: Props) {
+  const bridge = typeof window !== 'undefined' ? window.desktopPet : undefined
+  const [now, setNow] = useState(new Date())
+  const [look, setLook] = useState({ x: 0, y: 0 })
+  const [hover, setHover] = useState(false)
+  const [hop, setHop] = useState(0)
+  const dragInfo = useRef({ active: false, moved: 0, ox: 0, oy: 0 })
+
+  /* 透明背景:外壳里要让窗口后面的桌面透出来 */
+  useEffect(() => {
+    const html = document.documentElement
+    const body = document.body
+    const prev = { html: html.style.background, body: body.style.background }
+    html.style.background = 'transparent'
+    body.style.background = 'transparent'
+    body.style.overflow = 'hidden'
+    return () => {
+      html.style.background = prev.html
+      body.style.background = prev.body
+      body.style.overflow = ''
+    }
+  }, [])
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 20_000)
+    return () => clearInterval(t)
+  }, [])
+
+  /* 全局鼠标 → 眼睛朝向(-1 ~ 1) */
+  useEffect(() => {
+    if (!bridge) {
+      // 浏览器里调试时退化成页面内跟随
+      const onMove = (e: PointerEvent) => {
+        setLook({
+          x: (e.clientX / window.innerWidth - 0.5) * 2,
+          y: (e.clientY / window.innerHeight - 0.5) * 2,
+        })
+      }
+      window.addEventListener('pointermove', onMove)
+      return () => window.removeEventListener('pointermove', onMove)
+    }
+    return bridge.onCursor((pos) => {
+      const cx = pos.w / 2
+      const cy = pos.h * 0.45
+      const nx = Math.max(-1, Math.min(1, (pos.x - cx) / (pos.w * 0.6)))
+      const ny = Math.max(-1, Math.min(1, (pos.y - cy) / (pos.h * 0.6)))
+      setLook({ x: nx, y: ny })
+    })
+  }, [bridge])
+
+  /* 鼠标进兔子 → 窗口接收事件;离开 → 穿透 */
+  useEffect(() => {
+    bridge?.setInteractive(hover)
+    return () => bridge?.setInteractive(false)
+  }, [bridge, hover])
+
+  const current = useMemo(() => currentSession(courses, settings, now), [courses, settings, now])
+  const next = useMemo(() => nextSession(courses, settings, now), [courses, settings, now])
+  const week = currentWeek(settings, now)
+
+  const line = useMemo(() => {
+    if (current) return `正在上《${current.course.name}》`
+    if (next) {
+      const wd = WEEKDAY_CN[(next.start.getDay() === 0 ? 7 : next.start.getDay()) - 1]
+      const sameDay = next.start.toDateString() === now.toDateString()
+      return `${sameDay ? '' : `周${wd} `}${formatHHMM(next.start)}《${next.course.name}》`
+    }
+    return courses.length ? '今天没课~' : '还没有课表'
+  }, [current, next, now, courses.length])
+
+  const sleepy = !current && !next
+
+  /* 拖动窗口:偏移量 = 鼠标在窗口内的位置,主进程据此跟随 */
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button === 2) return
+    dragInfo.current = { active: true, moved: 0, ox: e.clientX, oy: e.clientY }
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragInfo.current.active) return
+    dragInfo.current.moved += Math.abs(e.movementX) + Math.abs(e.movementY)
+    if (dragInfo.current.moved > 4 && bridge) {
+      bridge.dragStart({ x: dragInfo.current.ox, y: dragInfo.current.oy })
+    }
+  }
+  const onPointerUp = () => {
+    const wasDrag = dragInfo.current.moved > 4
+    dragInfo.current.active = false
+    if (wasDrag) {
+      bridge?.dragEnd()
+    } else {
+      // 点一下:蹦一下
+      setHop((h) => h + 1)
+    }
+  }
+
+  return (
+    <div className="w-screen h-screen flex flex-col items-center justify-center select-none bg-transparent overflow-hidden">
+      <div className="pointer-events-auto bubble mb-1 max-w-[190px] px-2.5 py-1 rounded-2xl text-[11px] font-extrabold text-ink bg-white/85 border-2 border-ink/70 shadow-sm text-center">
+        {line}
+      </div>
+
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerEnter={() => setHover(true)}
+        onPointerLeave={() => setHover(false)}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          bridge?.menu()
+        }}
+        onDoubleClick={() => bridge?.openApp()}
+        className="w-[190px] h-[210px] grid place-items-end justify-center cursor-grab active:cursor-grabbing"
+        title="拖我走 · 双击打开课程桌 · 右键菜单"
+      >
+        <Suspense fallback={<Bunny sleepy={sleepy} size={150} />}>
+          <Pet3D state="idle" facing={look.x >= 0 ? 1 : -1} sleepy={sleepy} look={look} hopPulse={hop} />
+        </Suspense>
+      </div>
+
+      <div className="mt-1 text-[9.5px] font-bold text-ink/45 tracking-wide">第 {week} 周</div>
+    </div>
+  )
+}
