@@ -1,15 +1,20 @@
 /**
  * 桌宠外壳(Electron)。
  *
+ * 为什么要外壳:浏览器窗口一最小化,页面里的 DOM 就画不出来了。
+ * 想让小兔「一直在桌面上」,必须有一个**独立、透明、置顶**的小窗。
+ *
  * 为什么用 Electron 而不是 Tauri:
  *   - 这台机器有 Rust,但没装 MSVC 链接器,编译不了 Tauri;
  *   - Electron 自带运行时,而且有现成的全局鼠标位置 API(screen.getCursorScreenPoint),
  *     眼神跟随必须要它 —— 浏览器里拿不到别的窗口上的鼠标坐标。
  *
  * 窗口特性:透明、无边框、置顶、不进任务栏、可拖、平时不挡鼠标(鼠标穿透)。
+ * 关掉浏览器 / 最小化浏览器都不影响它;托盘图标可以随时唤起或退出。
  */
-const { app, BrowserWindow, Menu, screen, ipcMain, shell } = require('electron')
+const { app, BrowserWindow, Menu, Tray, screen, ipcMain, shell, nativeImage } = require('electron')
 const path = require('node:path')
+const fs = require('node:fs')
 
 /*
  * 有人在环境里设了 ELECTRON_RUN_AS_NODE,那会让 Electron 退化成纯 Node:
@@ -22,6 +27,18 @@ if (!ipcMain || !app) {
   process.exit(1)
 }
 
+/*
+ * 有些受限环境(只读 AppData / 沙箱)里写不了默认的 userData,
+ * 会连带单实例锁、GPU 缓存全部失败。允许用 PET_USERDATA 指定一个可写目录。
+ */
+if (process.env.PET_USERDATA) {
+  try {
+    app.setPath('userData', process.env.PET_USERDATA)
+  } catch (err) {
+    console.error('[pet] 设置 userData 失败:', err.message)
+  }
+}
+
 /** 桌宠页面(默认线上;本地调式可用 PET_URL=http://localhost:5173/#/pet) */
 const PET_URL = process.env.PET_URL || 'https://yuanxuru-oss.github.io/course-desk/#/pet'
 const APP_URL = process.env.APP_URL || 'https://yuanxuru-oss.github.io/course-desk/'
@@ -30,17 +47,92 @@ const W = 240
 const H = 280
 
 let win = null
+let tray = null
 let cursorTimer = null
 let dragOffset = null
 
-function createWindow() {
+/* ---------------- 位置记忆:关掉再开还在上次的地方 ---------------- */
+const stateFile = () => path.join(app.getPath('userData'), 'pet-window.json')
+
+function loadBounds() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(stateFile(), 'utf8'))
+    if (Number.isFinite(raw.x) && Number.isFinite(raw.y)) return raw
+  } catch {}
+  return null
+}
+
+function saveBounds() {
+  if (!win || win.isDestroyed()) return
+  try {
+    const b = win.getBounds()
+    fs.writeFileSync(stateFile(), JSON.stringify({ x: b.x, y: b.y }), 'utf8')
+  } catch {}
+}
+
+function defaultBounds() {
   const { workArea } = screen.getPrimaryDisplay()
+  return {
+    x: workArea.x + workArea.width - W - 40,
+    y: workArea.y + workArea.height - H - 20,
+  }
+}
+
+/* ---------------- 托盘:不上任务栏,但随时能找到它 ---------------- */
+function buildTray() {
+  const iconPath = path.join(__dirname, '..', 'public', 'icons', 'icon-192.png')
+  let img = nativeImage.createFromPath(iconPath)
+  if (img.isEmpty()) img = nativeImage.createEmpty()
+
+  try {
+    tray = new Tray(img.resize({ width: 16, height: 16 }))
+  } catch (err) {
+    console.error('[pet] 托盘创建失败(不影响桌宠本体):', err.message)
+    return
+  }
+
+  const menu = Menu.buildFromTemplate([
+    { label: '显示 / 隐藏桌宠', click: () => togglePet() },
+    { label: '打开课程桌', click: () => shell.openExternal(APP_URL) },
+    { type: 'separator' },
+    {
+      label: '开机自动启动',
+      type: 'checkbox',
+      checked: app.getLoginItemSettings().openAtLogin,
+      click: (item) => setAutoStart(item.checked),
+    },
+    { type: 'separator' },
+    { label: '退出桌宠', click: () => app.quit() },
+  ])
+  tray.setToolTip('课程桌 · 桌宠')
+  tray.setContextMenu(menu)
+  tray.on('click', () => togglePet())
+}
+
+function setAutoStart(on) {
+  // 只有打包后的 exe 才能被系统正确识别;开发模式下退化成提示
+  const ok = app.isPackaged
+  if (!ok) {
+    shell.openExternal(APP_URL)
+    return
+  }
+  app.setLoginItemSettings({ openAtLogin: on, path: process.execPath })
+}
+
+function togglePet() {
+  if (!win) return createWindow()
+  if (win.isVisible()) win.hide()
+  else win.show()
+}
+
+function createWindow() {
+  const bounds = loadBounds() || defaultBounds()
 
   win = new BrowserWindow({
     width: W,
     height: H,
-    x: workArea.x + workArea.width - W - 40,
-    y: workArea.y + workArea.height - H - 20,
+    x: bounds.x,
+    y: bounds.y,
     transparent: true,
     backgroundColor: '#00000000',
     frame: false,
@@ -91,7 +183,7 @@ function createWindow() {
     setTimeout(async () => {
       try {
         const img = await win.webContents.capturePage()
-        require('node:fs').writeFileSync(process.env.PET_SHOT, img.toPNG())
+        fs.writeFileSync(process.env.PET_SHOT, img.toPNG())
         console.log('[pet] 已保存窗口截图:', process.env.PET_SHOT)
       } catch (err) {
         console.error('[pet] 截图失败', err)
@@ -122,7 +214,16 @@ function createWindow() {
     })
   }, 40)
 
+  let saveTimer = null
+  const scheduleSave = () => {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(saveBounds, 400)
+  }
+  win.on('move', scheduleSave)
+  win.on('moved', scheduleSave)
+
   win.on('closed', () => {
+    saveBounds()
     win = null
     if (cursorTimer) clearInterval(cursorTimer)
   })
@@ -141,6 +242,7 @@ ipcMain.on('pet:drag-start', (_e, offset) => {
 
 ipcMain.on('pet:drag-end', () => {
   dragOffset = null
+  saveBounds()
 })
 
 ipcMain.on('pet:quit', () => app.quit())
@@ -154,10 +256,39 @@ ipcMain.on('pet:menu', () => {
   if (!win) return
   Menu.buildFromTemplate([
     { label: '打开课程桌', click: () => shell.openExternal(APP_URL) },
+    { label: '隐藏(托盘里还能找回来)', click: () => win.hide() },
     { type: 'separator' },
     { label: '退出桌宠', click: () => app.quit() },
   ]).popup({ window: win })
 })
 
-app.whenReady().then(createWindow)
-app.on('window-all-closed', () => app.quit())
+/* ---------- 单实例:重复双击只唤起已有的那只 ---------- */
+let gotLock = true
+try {
+  gotLock = app.requestSingleInstanceLock()
+} catch (err) {
+  // 写不了锁文件时不要直接退出,否则表现为"双击没反应"
+  console.error('[pet] 单实例锁创建失败,继续启动:', err.message)
+  gotLock = true
+}
+if (!gotLock) {
+  console.error('[pet] 已经有一只桌宠在运行了')
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (!win) createWindow()
+    else {
+      win.show()
+      win.focus()
+    }
+  })
+
+  app.whenReady().then(() => {
+    createWindow()
+    buildTray()
+  })
+}
+
+// 关掉窗口不退出进程:桌宠要一直活着(退出走托盘或右键菜单)
+app.on('window-all-closed', () => {})
+app.on('before-quit', () => saveBounds())
