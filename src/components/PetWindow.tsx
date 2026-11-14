@@ -124,9 +124,9 @@ export function PetWindow({ courses, homework, settings }: Props) {
 
   /* 鼠标进兔子 → 窗口接收事件;离开 → 穿透 */
   useEffect(() => {
-    bridge?.setInteractive(hover)
+    bridge?.setInteractive(hover || panel !== 'none')
     return () => bridge?.setInteractive(false)
-  }, [bridge, hover])
+  }, [bridge, hover, panel])
 
   /* 网页推过来的快照优先:桌面版自己的库是空的,数据得靠这个通道 */
   const [snap, setSnap] = useState<PetSnapshot | null>(null)
@@ -208,7 +208,10 @@ export function PetWindow({ courses, homework, settings }: Props) {
     }
     const cap = parseQuickCapture(text, { now: new Date() })
     if (!cap) {
-      setHint('这段文字里没认出「日期 + 时间」')
+      // 认不出来也别把人卡住:原文塞进标题,自己改时间和地点
+      setEv({ ...ev, title: text.trim().slice(0, 40) })
+      setHint('没认出日期/时间,原文已填进标题,自己补一下')
+      setPanel('event')
       return
     }
     setEv({
@@ -257,7 +260,11 @@ export function PetWindow({ courses, homework, settings }: Props) {
   }, [bridge])
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center select-none bg-transparent overflow-hidden">
+    <div
+      className="w-screen h-screen flex flex-col items-center justify-center select-none bg-transparent overflow-hidden"
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+    >
       {/* ============ 点一下弹出的操作面板 ============ */}
       {panel !== 'none' && (
         <div className="pointer-events-auto absolute top-1.5 left-1.5 right-1.5 z-10 rounded-[14px] bg-[#fffdf5] border-2 border-ink/70 shadow-lg p-2.5 text-ink">
@@ -290,7 +297,30 @@ export function PetWindow({ courses, homework, settings }: Props) {
 
           {panel === 'event' && (
             <div className="space-y-1.5">
-              <input
+              <textarea
+                rows={2}
+                placeholder="把微信消息粘到这里,自动识别"
+                onPaste={(e) => {
+                  const txt = e.clipboardData?.getData('text/plain') ?? ''
+                  if (!txt.trim()) return
+                  e.preventDefault()
+                  const cap = parseQuickCapture(txt, { now: new Date() })
+                  if (cap) {
+                    setEv({
+                      title: cap.parsed.title,
+                      date: cap.parsed.date,
+                      start: cap.parsed.start,
+                      end: cap.parsed.end,
+                      location: cap.parsed.location ?? '',
+                    })
+                    setHint('识别好了,确认一下')
+                  } else {
+                    setEv({ ...ev, title: txt.trim().slice(0, 40) })
+                    setHint('没认出时间,自己补一下')
+                  }
+                }}
+                className="w-full min-w-0 rounded-md border border-dashed border-ink/25 px-2 py-1 text-[11px] outline-none focus:border-tangerine-400 resize-none"
+              />              <input
                 autoFocus
                 value={ev.title}
                 onChange={(e) => setEv({ ...ev, title: e.target.value })}
@@ -352,8 +382,6 @@ export function PetWindow({ courses, homework, settings }: Props) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
-        onPointerEnter={() => setHover(true)}
-        onPointerLeave={() => setHover(false)}
         onContextMenu={(e) => {
           e.preventDefault()
           bridge?.menu()
