@@ -1,0 +1,17 @@
+{
+  "name": "course-desk-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "课程桌 PWA 推送服务(Web Push + 微信代理)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "web-push": "^3.6.7"
+  }
+}

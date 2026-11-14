@@ -1,0 +1,30 @@
+
+# OCR 运行时资源:构建时从 node_modules 复制(见 scripts/copy-ocr-assets.mjs)
+public/tesseract/worker.min.js
+public/tesseract/tesseract-core-*.wasm.js
+
+# 依赖与构建产物
+node_modules/
+dist/
+output/
+shots/
+
+# 本地环境与密钥
+.env
+.env.*
+!.env.example
+server/data/
+docs/ai-key.txt
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# esbuild 在 Windows 上的临时目录
+.tmp-esbuild/
+
+# 本地 npm 缓存(避免污染仓库)
+.npm-cache/

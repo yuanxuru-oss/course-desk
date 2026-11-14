@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="大学生电子桌面课程表:课表、每周作业、备忘录、AI 知识库与智能提醒" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="课程桌" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!--
+      字体走自托管(见 src/index.css 的 @font-face)。
+      之前这里挂的是 Google Fonts 的 <link>,它是渲染阻塞的:
+      国内访问 fonts.googleapis.com 会一直挂着,浏览器就一直等 → 整页白屏。
+      删掉之后页面不再依赖任何外部域名,首屏秒开、离线也正常。
+    -->
+    <title>课程桌 · 大学生电子课程表</title>
+    <style>
+      /* 双击 index.html 时(file:// 协议)显示的引导页。
+         这个样式是内联的,不依赖任何外部文件,保证在断网/裸文件下也能显示。 */
+      #file-hint {
+        font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+        background: #fdf6e4;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      #file-hint .box {
+        max-width: 460px;
+        width: 100%;
+        background: #fffdf5;
+        border: 3px solid #241f1a;
+        border-radius: 28px;
+        padding: 30px 28px;
+        box-shadow: 0 8px 0 rgba(36, 31, 26, 0.12);
+      }
+      #file-hint .badge {
+        display: inline-block;
+        background: #e5763a;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 5px 14px;
+        border-radius: 999px;
+      }
+      #file-hint h1 {
+        font-size: 26px;
+        line-height: 1.25;
+        margin: 16px 0 10px;
+        color: #241f1a;
+      }
+      #file-hint p {
+        font-size: 14px;
+        line-height: 1.85;
+        color: #5c5348;
+        margin: 0 0 14px;
+      }
+      #file-hint .how {
+        background: #fbeaa4;
+        border: 2px dashed #241f1a33;
+        border-radius: 18px;
+        padding: 14px 16px;
+        margin: 18px 0;
+      }
+      #file-hint .how b { color: #241f1a; }
+      #file-hint code {
+        background: #241f1a;
+        color: #fdf6e4;
+        padding: 2px 9px;
+        border-radius: 7px;
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+      }
+      #file-hint a {
+        display: inline-block;
+        margin-top: 6px;
+        background: #e5763a;
+        color: #fff;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 11px 20px;
+        border-radius: 999px;
+        text-decoration: none;
+        box-shadow: 0 4px 0 rgba(36, 31, 26, 0.18);
+      }
+      #file-hint .tip { font-size: 12.5px; color: #8a8073; margin-top: 14px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!--
+      被双击打开时(地址栏是 file:///...)给个明确指引,而不是一片白屏。
+      原因:file:// 协议下浏览器会用 CORS 拦掉 ES 模块脚本,IndexedDB 也不给用,
+      所以网页应用必须通过「本地服务器」打开。
+    -->
+    <script>
+      if (location.protocol === 'file:') {
+        document.getElementById('root').innerHTML =
+          '<div id="file-hint"><div class="box">' +
+          '<span class="badge">课程桌 CourseDesk</span>' +
+          '<h1>这个文件不能直接双击打开</h1>' +
+          '<p>课程桌是网页应用。浏览器在 <code>file://</code> 下会拦截脚本、也不给用本地数据库,' +
+          '所以直接打开 index.html 只会是一片空白 —— 不是文件坏了。</p>' +
+          '<div class="how">' +
+          '<p style="margin:0 0 8px"><b>请改用同文件夹里的启动器:</b></p>' +
+          '<p style="margin:0">Windows → 双击 <code>启动课程桌.bat</code><br>' +
+          'macOS → 双击 <code>启动课程桌.command</code></p>' +
+          '</div>' +
+          '<p>它会自动起一个本地服务并打开浏览器,之后还能把课程桌装成桌面 App。<b>不需要安装任何东西。</b></p>' +
+          '<a href="https://uqtldhphi6lk7.space.mcode.cn">直接用在线版 →</a>' +
+          '<p class="tip">小提示:文件下载重名时,Windows 会自动加「(1)」,不影响使用。</p>' +
+          '</div></div>';
+      }
+    </script>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

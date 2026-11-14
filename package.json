@@ -1,0 +1,47 @@
+{
+  "name": "course-desk",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "大学生电子桌面课程表 · PWA",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host --port 4173",
+    "typecheck": "tsc --noEmit",
+    "server": "node server/index.js",
+    "test": "node --experimental-strip-types scripts/test-parsers.mjs && node --experimental-strip-types scripts/test-import.mjs && node --experimental-strip-types scripts/test-pdf.mjs && node --experimental-strip-types scripts/test-grid.mjs",
+    "test:smoke": "python3 scripts/smoke.py",
+    "shot": "python3 scripts/screenshot.py",
+    "prebuild": "node scripts/copy-ocr-assets.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "dexie": "^4.0.8",
+    "dexie-react-hooks": "^1.1.7",
+    "lucide-react": "^0.441.0",
+    "pdfjs-dist": "^4.7.76",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "tesseract.js": "^5.1.1",
+    "three": "^0.187.0",
+    "xlsx": "^0.18.5",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8",
+    "vite-plugin-pwa": "^0.20.5"
+  }
+}

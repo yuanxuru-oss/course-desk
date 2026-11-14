@@ -1,0 +1,682 @@
+import { useMemo, useRef, useState } from 'react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  ExternalLink,
+  MapPin,
+  AlertTriangle,
+  BookOpen,
+  Link2,
+  CalendarRange,
+  User,
+  Star,
+  Clock,
+  Flag,
+  Repeat,
+  Zap,
+} from 'lucide-react'
+import type { Course, CourseEvent, Settings } from '../types'
+import {
+  courseInWeek,
+  coursePeriods,
+  courseTimeRange,
+  currentWeek,
+  detectTransitRisks,
+  weekToMonday,
+  WEEKDAY_CN,
+} from '../lib/time'
+import {
+  EVENT_COLOR,
+  eventBlockStyle,
+  eventKindMeta,
+  eventsInWeek,
+  layoutEvents,
+  shortDate,
+  weekdayLabel,
+} from '../lib/event'
+import { Button, Badge, Empty, Star as StarIcon, Card } from './ui'
+import { CourseDialog } from './CourseDialog'
+import { EventDialog } from './EventDialog'
+import { upsertCourse, deleteCourse, upsertEvent, deleteEvent } from '../lib/actions'
+import { cn, COURSE_COLORS, hashColor, readableText } from '../lib/utils'
+
+interface Props {
+  courses: Course[]
+  events: CourseEvent[]
+  settings: Settings
+  onToast: (text: string, type?: 'info' | 'success' | 'error') => void
+}
+
+const ROW_H = 86
+
+export function ScheduleView({ courses, events, settings, onToast }: Props) {
+  const thisWeek = currentWeek(settings)
+  const [week, setWeek] = useState(thisWeek)
+  const [editing, setEditing] = useState<Course | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<CourseEvent | null>(null)
+  const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [dragOver, setDragOver] = useState<{ weekday: number; period: number } | null>(null)
+  const dragId = useRef<string | null>(null)
+
+  const todayWeekday = new Date().getDay() === 0 ? 7 : new Date().getDay()
+  // 只有正在看「本周」时才是「今天」;翻到第 3 周还把当天整列标成今天会误导
+  const today = week === thisWeek ? todayWeekday : -1
+  const monday = weekToMonday(week, settings.semesterStart)
+
+  const visible = useMemo(() => courses.filter((c) => courseInWeek(c, week)), [courses, week])
+
+  /** 本周出现的行程(每周重复的每周都出现) */
+  const occurrences = useMemo(() => eventsInWeek(events, week, settings), [events, week, settings])
+  /** 同一时段有多个行程时并排摆放(经典日历分栏) */
+  const positioned = useMemo(() => layoutEvents(occurrences), [occurrences])
+  const eventsByDay = useMemo(() => {
+    const map = new Map<number, typeof positioned>()
+    for (const p of positioned) {
+      const list = map.get(p.occ.weekday) ?? []
+      list.push(p)
+      map.set(p.occ.weekday, list)
+    }
+    return map
+  }, [positioned])
+
+  const risks = useMemo(() => detectTransitRisks(courses, settings, new Date(), 1), [courses, settings])
+
+  const openNew = () => {
+    setEditing(null)
+    setDialogOpen(true)
+  }
+
+  const openEdit = (c: Course) => {
+    setEditing(c)
+    setDialogOpen(true)
+  }
+
+  const openNewEvent = () => {
+    setEditingEvent(null)
+    setEventDialogOpen(true)
+  }
+
+  const openEditEvent = (ev: CourseEvent) => {
+    setEditingEvent(ev)
+    setEventDialogOpen(true)
+  }
+
+  const handleDrop = async (weekday: number, period: number) => {
+    const id = dragId.current
+    dragId.current = null
+    setDragOver(null)
+    if (!id) return
+    const course = courses.find((c) => c.id === id)
+    if (!course) return
+    /*
+     * 连堂课要按「跨度」夹紧:两节连排的课拖到最后一节时,
+     * 第二节课会超出网格,被外层 overflow-hidden 裁掉一半,而且点不到。
+     */
+    const span = coursePeriods(course).length
+    const target = Math.max(1, Math.min(period, maxPeriod - span + 1))
+    if (course.weekday === weekday && course.period === target) return
+    await upsertCourse({ ...course, weekday, period: target })
+    onToast(`「${course.name}」已移动到星期${WEEKDAY_CN[weekday - 1]}第${target}节`, 'success')
+  }
+
+  const maxPeriod = Math.max(6, ...settings.periods.map((p) => p.index))
+
+  return (
+    <div className="space-y-5">
+      {/* ============ 主角页头:橙色横幅 ============ */}
+      <section className="relative overflow-hidden rounded-[32px] bg-tangerine-500 shadow-sticker-lg">
+        {/* 装饰星 */}
+        <StarIcon size={26} color="#F8DF7C" className="absolute top-5 right-16 animate-twinkle" />
+        <StarIcon size={17} color="#7B92DC" className="absolute top-12 right-32 animate-twinkle" />
+        <StarIcon size={20} color="#FFFFFF" className="absolute bottom-16 left-1/3 opacity-80" />
+        <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" />
+        <div className="absolute -left-12 -bottom-16 w-44 h-44 rounded-full bg-butter-300/20" />
+
+        <div className="relative px-5 pt-6 pb-7 sm:px-8 sm:pt-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[11px] font-bold px-3 py-1 rounded-full mb-3">
+                <Star size={11} fill="#F8DF7C" strokeWidth={0} color="#F8DF7C" />
+                你的课程表
+              </div>
+              <h1 className="text-3xl lg:text-[40px] font-extrabold tracking-tight text-white leading-none">
+                第 {week} 教学周
+              </h1>
+              <p className="text-white/75 text-[13px] font-medium mt-2">
+                {monday.getMonth() + 1}/{monday.getDate()} 起 · 本周 {visible.length} 门课
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center bg-white/20 rounded-full p-1 gap-0.5">
+                <button
+                  onClick={() => setWeek((w) => Math.max(1, w - 1))}
+                  className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
+                  aria-label="上一周"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => setWeek(thisWeek)}
+                  className="px-3 h-9 rounded-full text-white text-[13px] font-bold hover:bg-white/25 transition-colors whitespace-nowrap"
+                >
+                  本周
+                </button>
+                <button
+                  onClick={() => setWeek((w) => Math.min(settings.weekCount, w + 1))}
+                  className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
+                  aria-label="下一周"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={openNew}
+                className="!bg-white !text-ink !border-ink/[0.15] shadow-sticker-sm !px-4 sm:!px-5"
+              >
+                <Plus size={16} /> 加课
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={openNewEvent}
+                title="添加行程:学生会会议、党会、讲座等"
+                className="!bg-white !text-ink !border-ink/[0.15] shadow-sticker-sm !px-3 sm:!px-5"
+              >
+                <Flag size={16} /> <span className="hidden sm:inline">加行程</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* 图例:实心 = 课程,斜纹 = 行程 */}
+          <div className="relative mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] font-semibold text-white/80">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded-[5px] bg-white/90 border-2 border-white/60" />
+              课程(实心色块)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="w-3.5 h-3.5 rounded-[5px] border-2 border-dashed"
+                style={{
+                  borderColor: '#F8DF7C',
+                  backgroundImage:
+                    'repeating-linear-gradient(45deg, rgba(248,223,124,.55) 0 2px, transparent 2px 5px)',
+                }}
+              />
+              行程(斜纹纸片)
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ 赶课提醒(移动端折叠成一行,不抢课表) ============ */}
+      {risks.length > 0 && (
+        <div className="rounded-[22px] bg-white border-2 border-ink/10 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className="text-tangerine-500 shrink-0" />
+            <span className="text-[12.5px] font-extrabold text-ink whitespace-nowrap">本周赶课提醒</span>
+            <Badge color="#E5763A">{risks.length} 处</Badge>
+            {/* 移动端只给一句摘要,把版面让给课表 */}
+            <span className="ml-auto text-[11.5px] text-ink-mute truncate lg:hidden">
+              {risks[0].message.split(',')[0]}
+            </span>
+          </div>
+          <div className="hidden lg:block space-y-0.5 mt-1.5">
+            {risks.slice(0, 4).map((r, i) => (
+              <div key={i} className="text-[12px] text-ink-soft">
+                <span className="text-ink-mute mr-1">·</span>
+                {r.message}
+                {r.level === 'high' && (
+                  <span className="ml-1.5 text-[11px] text-cherry-500 font-bold">建议提前出发</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============ 课表网格(视觉主角) ============ */}
+      <Card className="overflow-hidden !rounded-[32px]">
+        <div className="overflow-x-auto">
+          <div className="min-w-[760px]">
+            {/* 表头 */}
+            <div className="flex border-b-2 border-ink/[0.08] bg-butter-100 sticky top-0 z-10">
+              <div className="w-[64px] shrink-0 px-2 py-3 text-[11px] font-bold text-ink-mute flex items-center justify-center">
+                节次
+              </div>
+              {WEEKDAY_CN.map((w, i) => {
+                const isToday = i + 1 === today
+                return (
+                  <div
+                    key={w}
+                    className={cn(
+                      'flex-1 min-w-[96px] py-3 text-center',
+                      isToday ? 'bg-tangerine-500' : '',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'text-[14px] font-extrabold',
+                        isToday ? 'text-white' : 'text-ink',
+                      )}
+                    >
+                      星期{w}
+                    </span>
+                    {isToday && (
+                      <span className="block text-[10px] font-bold text-white/80 mt-0.5">今天</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* 网格主体 */}
+            <div className="flex">
+              {/* 时间轴 */}
+              <div className="w-[64px] shrink-0 relative bg-butter-50 border-r-2 border-ink/[0.08]" style={{ height: maxPeriod * ROW_H }}>
+                {settings.periods.map((p) => (
+                  <div
+                    key={p.index}
+                    className="absolute inset-x-0 text-center pt-1.5"
+                    style={{ top: (p.index - 1) * ROW_H, height: ROW_H }}
+                  >
+                    <div className="text-[11.5px] font-extrabold text-ink">{p.index}</div>
+                    <div className="text-[10px] text-ink-mute leading-tight font-medium">{p.start}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 每天一列 */}
+              {WEEKDAY_CN.map((w, wi) => {
+                const weekday = wi + 1
+                const isToday = weekday === today
+                return (
+                  <div
+                    key={w}
+                    className={cn(
+                      'flex-1 min-w-[96px] relative border-r-2 border-ink/[0.08] last:border-r-0',
+                      isToday && 'bg-butter-100/50',
+                    )}
+                    style={{ height: maxPeriod * ROW_H }}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const period = Math.max(
+                        1,
+                        Math.min(maxPeriod, Math.floor((e.clientY - rect.top) / ROW_H) + 1),
+                      )
+                      setDragOver({ weekday, period })
+                    }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const period = Math.max(
+                        1,
+                        Math.min(maxPeriod, Math.floor((e.clientY - rect.top) / ROW_H) + 1),
+                      )
+                      handleDrop(weekday, period)
+                    }}
+                  >
+                    {/* 网格线 */}
+                    {Array.from({ length: maxPeriod }, (_, i) => (
+                      <div
+                        key={i}
+                        className="absolute inset-x-0 border-t-2 border-ink/[0.06]"
+                        style={{ top: i * ROW_H }}
+                      />
+                    ))}
+
+                    {/* 放置高亮 */}
+                    {dragOver?.weekday === weekday && (
+                      <div
+                        className="absolute inset-x-1.5 border-2 border-dashed border-tangerine-500 bg-tangerine-100/60 rounded-2xl pointer-events-none z-[5]"
+                        style={{ top: (dragOver.period - 1) * ROW_H + 3, height: ROW_H - 6 }}
+                      />
+                    )}
+
+                    {/* 课程块:实心色块,视觉主角 */}
+                    {visible
+                      .filter((c) => c.weekday === weekday)
+                      .map((c) => {
+                        const periods = coursePeriods(c)
+                        const startPeriod = periods[0]
+                        const color = c.color ?? hashColor(c.name)
+                        const fg = readableText(color)
+                        const range = courseTimeRange(c, settings)
+                        return (
+                          <div
+                            key={c.id}
+                            draggable
+                            onDragStart={(e) => {
+                              // Firefox / 部分 WebKit 必须写 dataTransfer,
+                              // 否则这次拖拽会被直接取消(Chrome 恰好容忍)
+                              e.dataTransfer.setData('text/plain', c.id)
+                              e.dataTransfer.effectAllowed = 'move'
+                              dragId.current = c.id
+                            }}
+                            onDragEnd={() => {
+                              dragId.current = null
+                              setDragOver(null)
+                            }}
+                            onClick={() => openEdit(c)}
+                            className="absolute inset-x-1 rounded-2xl p-2 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-sticker-sm active:translate-y-0 overflow-hidden group"
+                            style={{
+                              top: (startPeriod - 1) * ROW_H + 3,
+                              height: periods.length * ROW_H - 6,
+                              background: color,
+                              border: `2px solid ${color}`,
+                              boxShadow: '3px 3px 0 0 rgba(36,31,26,.16)',
+                            }}
+                          >
+                            <div
+                              className="text-[12.5px] font-extrabold leading-tight line-clamp-2"
+                              style={{ color: fg }}
+                            >
+                              {c.name}
+                            </div>
+                            {/* 行 2:起止时间胶囊 + 官网图标(窄列也不挤) */}
+                            <div className="mt-1 flex items-center gap-1">
+                              {range && (
+                                <div
+                                  className="inline-flex items-center gap-0.5 px-1 py-[1px] rounded-full text-[9.5px] font-extrabold tabular-nums whitespace-nowrap shrink-0"
+                                  style={{ background: `${fg}26`, color: fg }}
+                                  title={`第${startPeriod}${periods.length > 1 ? `-${startPeriod + periods.length - 1}` : ''}节 ${range.label}`}
+                                >
+                                  <Clock size={8} strokeWidth={2.5} className="shrink-0" />
+                                  {range.label}
+                                </div>
+                              )}
+                              {c.website && (
+                                <a
+                                  href={c.website}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-[2px] rounded-full shrink-0"
+                                  style={{ background: `${fg}22`, color: fg }}
+                                  title={`打开「${c.name}」课程官网`}
+                                >
+                                  <Link2 size={10} />
+                                  <span className="hidden sm:inline">官网</span>
+                                </a>
+                              )}
+                            </div>
+                            {/* 行 3:教室优先(一定不截断),老师放不下就省略 */}
+                            {(c.location || c.teacher) && (
+                              <div
+                                className="text-[10px] font-medium mt-1 flex items-center gap-1 overflow-hidden"
+                                style={{ color: fg }}
+                              >
+                                {c.location && (
+                                  <span className="inline-flex items-center gap-0.5 shrink-0 font-semibold">
+                                    <MapPin size={9} className="shrink-0" /> {c.location}
+                                  </span>
+                                )}
+                                {c.location && c.teacher && (
+                                  <span className="opacity-60 shrink-0 hidden sm:inline">·</span>
+                                )}
+                                {c.teacher && (
+                                  <span className="inline-flex items-center gap-0.5 min-w-0 truncate opacity-70 hidden sm:inline-flex">
+                                    <User size={9} className="shrink-0" /> {c.teacher}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                    {/* 行程块:斜纹纸片材质,叠在课程块之上(课程是主角,行程是配角) */}
+                    {(eventsByDay.get(weekday) ?? []).map((p) => {
+                      const o = p.occ
+                      const ev = o.event
+                      const meta = eventKindMeta(ev.kind)
+                      const rowCount = o.slot.endPeriod - o.slot.startPeriod + 1
+                      const narrow = p.lanes > 1
+                      return (
+                        <div
+                          key={`${ev.id}-${o.date}`}
+                          onClick={() => openEditEvent(ev)}
+                          title={`${meta.label} · ${ev.title} ${ev.start}–${ev.end}`}
+                          className="absolute rounded-2xl p-1.5 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-sticker-sm active:translate-y-0 overflow-hidden z-[6]"
+                          style={{
+                            top: (o.slot.startPeriod - 1) * ROW_H + 3,
+                            height: rowCount * ROW_H - 6,
+                            left: `calc(${(p.lane * 100) / p.lanes}% + 4px)`,
+                            width: `calc(${100 / p.lanes}% - 8px)`,
+                            ...eventBlockStyle(EVENT_COLOR),
+                            boxShadow: '3px 3px 0 0 rgba(36,31,26,.13)',
+                          }}
+                        >
+                          <div
+                            className={cn(
+                              'font-extrabold leading-tight line-clamp-2 text-ink',
+                              narrow ? 'text-[11px]' : 'text-[12.5px]',
+                            )}
+                            title={ev.title}
+                          >
+                            <span className="mr-1">{meta.icon}</span>
+                            {ev.title}
+                          </div>
+                          <div
+                            className={cn(
+                              'mt-1 inline-flex items-center gap-0.5 rounded-full font-extrabold tabular-nums whitespace-nowrap shrink-0',
+                              narrow ? 'text-[8.5px] px-1 py-[1px]' : 'text-[9.5px] px-1 py-[1px]',
+                            )}
+                            style={{ background: `${EVENT_COLOR}26`, color: EVENT_COLOR }}
+                          >
+                            {!narrow && <Clock size={8} strokeWidth={2.5} className="shrink-0" />}
+                            {ev.start}–{ev.end}
+                            {ev.weekly && <Repeat size={8} className="shrink-0" />}
+                          </div>
+                          {ev.location && !narrow && (
+                            <div className="text-[10px] font-semibold mt-1 truncate flex items-center gap-0.5 text-ink-soft">
+                              <MapPin size={9} className="shrink-0" /> {ev.location}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ============ 本周行程(次要,但要看得见) ============ */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Flag size={16} className="text-ink-mute" />
+          <h2 className="text-[15px] font-extrabold text-ink">本周行程</h2>
+          <span className="text-xs text-ink-mute font-medium">{occurrences.length} 项</span>
+          <Button size="sm" variant="secondary" onClick={openNewEvent} className="ml-auto">
+            <Plus size={13} /> 加行程
+          </Button>
+        </div>
+        {occurrences.length === 0 ? (
+          <Card>
+            <Empty
+              icon={<Flag size={26} style={{ color: EVENT_COLOR }} />}
+              title="本周没有行程"
+              description="学生会会议、老师开会、党会、讲座……都可以记在这里,会自动同步到备忘"
+              action={
+                <Button variant="secondary" size="sm" onClick={openNewEvent}>
+                  <Plus size={13} /> 添加第一项行程
+                </Button>
+              }
+            />
+            <div className="mt-3 flex items-start gap-2 rounded-xl bg-butter-50 border-2 border-ink/[0.07] px-3 py-2.5">
+              <Zap size={13} className="text-tangerine-500 shrink-0 mt-0.5" />
+              <p className="text-[11.5px] text-ink-soft leading-relaxed">
+                微信里收到「周三下午3点开党会」这类消息?复制整句话,粘进
+                <span className="font-semibold text-ink">「添加行程」</span>
+                顶部的速记框,点「识别」就自动填好日期、时间、地点和类型。
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {occurrences.map((o) => {
+              const ev = o.event
+              const meta = eventKindMeta(ev.kind)
+              return (
+                <button
+                  key={`${ev.id}-${o.date}`}
+                  onClick={() => openEditEvent(ev)}
+                  className="text-left rounded-2xl p-3 flex gap-3 items-start transition-all hover:-translate-y-0.5 hover:shadow-sticker-sm"
+                  style={{
+                    backgroundColor: 'rgba(255, 253, 245, 0.94)',
+                    backgroundImage: `repeating-linear-gradient(45deg, ${EVENT_COLOR}33 0 2px, transparent 2px 9px)`,
+                    border: `2px dashed ${EVENT_COLOR}`,
+                  }}
+                >
+                  <div
+                    className="w-11 shrink-0 rounded-xl grid place-items-center text-[11px] font-extrabold py-1.5"
+                    style={{ background: `${EVENT_COLOR}1f`, color: EVENT_COLOR, border: `1.5px solid ${EVENT_COLOR}45` }}
+                  >
+                    {shortDate(o.date)}
+                    <span className="text-[10px] font-bold">周{weekdayLabel(o.weekday)}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13.5px] font-extrabold text-ink truncate">
+                      <span className="mr-1">{meta.icon}</span>
+                      {ev.title}
+                      {ev.weekly && <Repeat size={11} className="inline ml-1 text-ink-mute align-middle" />}
+                    </div>
+                    <div className="text-[11.5px] font-semibold text-ink-soft mt-0.5 tabular-nums">
+                      {ev.start} – {ev.end}
+                      {ev.location && <span className="text-ink-mute"> · {ev.location}</span>}
+                    </div>
+                    {ev.detail && (
+                      <div className="text-[11.5px] text-ink-mute mt-1 line-clamp-2 leading-relaxed">{ev.detail}</div>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ============ 本学期课程(次要) ============ */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarRange size={16} className="text-ink-mute" />
+          <h2 className="text-[15px] font-extrabold text-ink">本学期课程</h2>
+          <span className="text-xs text-ink-mute font-medium">{courses.length} 门</span>
+        </div>
+        {courses.length === 0 ? (
+          <Card>
+            <Empty
+              icon={<BookOpen size={28} className="text-tangerine-300" />}
+              title="还没有课程"
+              description="点击「加课」手动添加,或到「导入」页上传教务系统导出的 Excel"
+              action={
+                <Button variant="primary" size="sm" onClick={openNew}>
+                  添加第一门课
+                </Button>
+              }
+            />
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <div className="divide-y-2 divide-ink/[0.06]">
+              {courses
+                .slice()
+                .sort((a, b) => a.weekday - b.weekday || a.period - b.period)
+                .map((c) => {
+                  const color = c.color ?? hashColor(c.name)
+                  const fg = readableText(color)
+                  const weeks = c.singleWeeks?.length
+                    ? `第 ${c.singleWeeks[0]}${c.singleWeeks.length > 1 ? `-${c.singleWeeks[c.singleWeeks.length - 1]}` : ''} 周(${c.singleWeeks.length} 周)`
+                    : `第 ${c.startWeek}-${c.endWeek} 周`
+                  const range = courseTimeRange(c, settings)
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => openEdit(c)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-butter-50 transition-colors"
+                    >
+                      <div
+                        className="w-9 h-9 rounded-xl grid place-items-center shrink-0 text-[12px] font-extrabold"
+                        style={{ background: color, color: fg }}
+                      >
+                        {c.period}
+                      </div>
+                      <div className="w-[52px] shrink-0 text-[11.5px] font-bold text-ink-soft">
+                        星期{WEEKDAY_CN[c.weekday - 1]}
+                        <div className="text-[10px] font-medium text-ink-mute">
+                          {c.periods > 1 ? `${c.period}-${c.period + c.periods - 1} 节` : '单节'}
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-ink truncate">{c.name}</div>
+                        <div className="text-[11px] text-ink-mute truncate font-medium">
+                          {[c.teacher, c.location, weeks].filter(Boolean).join(' · ')}
+                        </div>
+                      </div>
+                      {range && (
+                        <span className="shrink-0 text-[11.5px] font-extrabold text-ink-soft tabular-nums bg-butter-100 px-2 py-1 rounded-full">
+                          {range.label}
+                        </span>
+                      )}
+                      {c.website && (
+                        <a
+                          href={c.website}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="shrink-0 p-2 text-ink-mute hover:text-tangerine-600 transition-colors"
+                          title="打开课程官网"
+                        >
+                          <ExternalLink size={15} />
+                        </a>
+                      )}
+                    </button>
+                  )
+                })}
+            </div>
+          </Card>
+        )}
+      </div>
+
+      <CourseDialog
+        open={dialogOpen}
+        course={editing}
+        allCourses={courses}
+        settings={settings}
+        onClose={() => setDialogOpen(false)}
+        onSave={async (c) => {
+          await upsertCourse(c)
+          onToast('课程已保存', 'success')
+        }}
+        onDelete={async (id) => {
+          await deleteCourse(id)
+          onToast('课程已删除', 'success')
+        }}
+      />
+
+      <EventDialog
+        open={eventDialogOpen}
+        event={editingEvent}
+        settings={settings}
+        onClose={() => setEventDialogOpen(false)}
+        onSave={async (ev) => {
+          await upsertEvent(ev)
+          onToast('行程已保存,并同步到备忘', 'success')
+        }}
+        onDelete={async (id) => {
+          await deleteEvent(id)
+          onToast('行程已删除', 'success')
+        }}
+      />
+    </div>
+  )
+}

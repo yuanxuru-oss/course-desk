@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Fredoka —— 自托管,不走 Google Fonts
+ *
+ * 之前用的是 <link href="https://fonts.googleapis.com/...">。
+ * 那个是**渲染阻塞**的:国内访问 fonts.googleapis.com 会一直挂着不回,
+ * 浏览器就一直等 → 整页白屏,连 DOMContentLoaded 都到不了。
+ *
+ * 现在把字体文件打包进应用自己(34KB,可变字体一个文件顶四个字重),
+ * 同源加载、离线可用、首屏不等任何人。
+ */
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('./fonts/fredoka-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Fredoka';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('./fonts/fredoka-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --app-bg: #fdf6e4;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: #241f1a;
+  font-family: 'Fredoka', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d9cfae transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #e2d7b8;
+  border-radius: 99px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #cdbf98;
+}
+
+@layer components {
+  /* ================= 应用骨架 ================= */
+  .app-shell {
+    @apply min-h-full flex bg-[#fdf6e4];
+  }
+
+  .sidebar {
+    @apply hidden lg:flex flex-col w-[248px] shrink-0 bg-[#fbeaa4] border-r-2 border-[#241f1a]/10;
+  }
+
+  /* ================= 侧栏对齐栅格 =================
+     图标列 x=30 · 文字列 x=60 · 分组标签 x=30(与图标列同线)
+     侧栏内边距 px-4(16px)+ px-3.5(14px)= 30px → 图标列
+     图标槽 18px + gap-3(12px) → 文字列 60px
+     品牌标记 36px(16→52)+ gap-2(8px) → 品牌文字同样落在 60px
+     全部侧栏文字共用一条左对齐线。 */
+  .nav-primary {
+    @apply flex items-center gap-3 px-3.5 h-12 rounded-2xl text-[15px] font-semibold transition-all;
+  }
+
+  /* 图标槽:固定 18px,所有侧栏图标左边缘严格对齐 */
+  .nav-icon {
+    @apply w-[18px] shrink-0 grid place-items-center;
+  }
+
+  .nav-primary:hover {
+    @apply bg-white/60;
+  }
+
+  .nav-primary.active {
+    @apply bg-tangerine-500 text-white shadow-sticker-sm;
+  }
+
+  /* 二级导航:学习伙伴 —— 安静、小一号(与一级共用同一条对齐线) */
+  .nav-item {
+    @apply flex items-center gap-3 px-3.5 h-9 rounded-xl text-[13.5px] font-medium text-ink-soft transition-colors;
+  }
+
+  .nav-item:hover {
+    @apply bg-white/70 text-ink;
+  }
+
+  .nav-item.active {
+    @apply bg-periwi-100 text-periwi-700;
+  }
+
+  /* 分组标签:与图标列(x=30)同线,而不是顶到最左边 */
+  .nav-group-label {
+    @apply pl-3.5 pr-3 pb-1.5 pt-4 text-[10.5px] font-bold tracking-[0.14em] text-ink-mute uppercase;
+  }
+
+  /* ================= 移动端底部导航 ================= */
+  .bottom-nav {
+    @apply lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t-2 border-[#241f1a]/10;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bottom-nav-item {
+    @apply flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium text-ink-mute;
+  }
+
+  .bottom-nav-item.active {
+    @apply text-tangerine-600;
+  }
+
+  /* 一级(课表)在移动端也做成实心块,一眼看见 */
+  .bottom-nav-item.primary {
+    @apply text-white;
+  }
+
+  /* ================= 页面层级 ================= */
+  /* 主角页面:课表 */
+  .page-hero {
+    @apply text-3xl lg:text-[34px] font-extrabold tracking-tight text-ink leading-none;
+  }
+
+  /* 配角页面:作业 / 备忘 / AI / 设置 */
+  .page-title {
+    @apply text-[22px] font-bold tracking-tight text-ink leading-tight;
+  }
+
+  .page-sub {
+    @apply text-[13px] text-ink-soft mt-1.5;
+  }
+
+  /* ================= 卡片 ================= */
+  .card {
+    @apply bg-white rounded-[28px] border-2 border-[#241f1a]/10 shadow-sticker;
+  }
+
+  .card-soft {
+    @apply rounded-[24px] border-2 border-[#241f1a]/[0.08];
+  }
+
+  /* ================= Markdown ================= */
+  .markdown-body {
+    @apply text-[14px] leading-[1.75] text-ink-soft;
+  }
+
+  .markdown-body h1 {
+    @apply text-lg font-bold text-ink mt-4 mb-2;
+  }
+  .markdown-body h2 {
+    @apply text-base font-bold text-ink mt-4 mb-1.5;
+  }
+  .markdown-body h3 {
+    @apply text-sm font-bold text-ink mt-3 mb-1;
+  }
+  .markdown-body p {
+    @apply my-2;
+  }
+  .markdown-body ul {
+    @apply list-disc pl-5 my-2 space-y-1;
+  }
+  .markdown-body ol {
+    @apply list-decimal pl-5 my-2 space-y-1;
+  }
+  .markdown-body code {
+    @apply px-1.5 py-0.5 rounded bg-butter-100 text-[12px] text-tangerine-700 font-mono;
+  }
+  .markdown-body pre {
+    @apply my-3 p-3 rounded-xl bg-ink text-butter-100 overflow-x-auto text-[12px] leading-relaxed;
+  }
+  .markdown-body pre code {
+    @apply bg-transparent text-inherit p-0;
+  }
+  .markdown-body blockquote {
+    @apply border-l-4 border-butter-300 pl-3 my-2 text-ink-mute;
+  }
+  .markdown-body a {
+    @apply text-tangerine-600 underline underline-offset-2;
+  }
+  .markdown-body table {
+    @apply w-full my-3 text-[13px] border-collapse;
+  }
+  .markdown-body th,
+  .markdown-body td {
+    @apply border border-[#241f1a]/10 px-2 py-1.5 text-left;
+  }
+  .markdown-body th {
+    @apply bg-butter-50 font-bold text-ink;
+  }
+  .markdown-body hr {
+    @apply my-4 border-[#241f1a]/10;
+  }
+}
+
+@layer utilities {
+  /* SVG 里做缩放动画:默认变换原点是 viewport 原点,眨眼的眼睛会飞出去 */
+  .pet-blink {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+}
