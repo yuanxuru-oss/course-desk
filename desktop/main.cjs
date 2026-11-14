@@ -80,6 +80,60 @@ let tray = null
 let cursorTimer = null
 let dragOffset = null
 
+/*
+ * 自定义协议 coursedesk://
+ *
+ * 网页没法直接启动本地程序(浏览器安全限制),标准做法是注册一个协议:
+ * 网页里点开关 → 浏览器问一次「是否打开课程桌桌宠」→ 系统调起这个 exe。
+ * 只在 HKCU 下写注册表,不需要管理员权限。
+ */
+const PROTOCOL = 'coursedesk'
+
+function registerProtocol() {
+  // 先试 Electron 自带 API(打包后一般能成)
+  try {
+    const ok = process.defaultApp
+      ? app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])])
+      : app.setAsDefaultProtocolClient(PROTOCOL)
+    log('[协议] setAsDefaultProtocolClient =', ok)
+    if (ok && process.platform !== 'win32') return
+  } catch (err) {
+    log('[协议] API 出错', err.message)
+  }
+
+  /*
+   * Electron 的 API 在便携版 / 某些环境里会返回 false 且什么都不写,
+   * 所以直接自己写 HKCU\Software\Classes(不需要管理员权限)。
+   */
+  if (process.platform !== 'win32') return
+  try {
+    const { execFileSync } = require('node:child_process')
+    const exe = process.execPath
+    const base = 'HKCU\\Software\\Classes\\' + PROTOCOL
+    const cmd = '"' + exe + '" --no-sandbox "%1"'
+    execFileSync('reg', ['add', base, '/ve', '/d', 'URL:CourseDesk Pet', '/f'], { stdio: 'ignore' })
+    execFileSync('reg', ['add', base, '/v', 'URL Protocol', '/d', '', '/f'], { stdio: 'ignore' })
+    execFileSync('reg', ['add', base + '\\shell\\open\\command', '/ve', '/d', cmd, '/f'], { stdio: 'ignore' })
+    log('[协议] 已写入注册表:', base)
+  } catch (err) {
+    log('[协议] 写注册表失败', err.message)
+  }
+}
+
+/** 处理 coursedesk://open | hide | toggle */
+function handleUrl(raw) {
+  if (!raw || !raw.startsWith(PROTOCOL + '://')) return
+  const action = raw.slice(PROTOCOL.length + 3).replace(/\/+$/, '').toLowerCase() || 'open'
+  log('[协议] 收到', action)
+  if (!win) createWindow()
+  if (action === 'hide') win.hide()
+  else if (action === 'toggle') (win.isVisible() ? win.hide() : win.show())
+  else {
+    win.show()
+    win.focus()
+  }
+}
+
 /* ---------------- 位置记忆:关掉再开还在上次的地方 ---------------- */
 const stateFile = () => path.join(app.getPath('userData'), 'pet-window.json')
 
@@ -304,8 +358,10 @@ if (!gotLock) {
   console.error('[pet] 已经有一只桌宠在运行了')
   app.quit()
 } else {
-  app.on('second-instance', () => {
-    if (!win) createWindow()
+  app.on('second-instance', (_e, argv) => {
+    const u = argv.find((a) => a.startsWith(PROTOCOL + '://'))
+    if (u) handleUrl(u)
+    else if (!win) createWindow()
     else {
       win.show()
       win.focus()
@@ -313,6 +369,9 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
+    registerProtocol()
+    const first = process.argv.find((a) => a.startsWith(PROTOCOL + '://'))
+    if (first) setTimeout(() => handleUrl(first), 400)
     log('[ready] createWindow')
     try {
       createWindow()
