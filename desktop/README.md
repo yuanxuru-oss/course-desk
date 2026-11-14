@@ -10,9 +10,16 @@ Electron 自带运行时、而且有现成的**全局鼠标位置** API(`screen.
 
 ## 最简单:双击启动
 
-直接双击 **`desktop\启动桌宠.cmd`** —— 它会绕开 npm 和 PowerShell 的执行策略,
+直接双击 **[desktop/start-pet.cmd](start-pet.cmd)**(纯英文名,避免中文文件名在 cmd 里乱码) —— 它会绕开 npm 和 PowerShell 的执行策略,
 直接调 
 ode_modules 里的 Electron 启动。
+
+## 出问题先跑诊断
+
+双击 **`desktop/diagnose.cmd`**,它会检查:环境变量、Electron 是否装好、版本号、网页能不能访问。
+
+> 常见坑:环境里设了 ELECTRON_RUN_AS_NODE=1 时,Electron 会退化成纯 Node,窗口不出现。
+> 启动脚本已经帮你清掉了;如果手动在命令行跑,记得先 $env:ELECTRON_RUN_AS_NODE=""。
 
 ## 命令行启动
 

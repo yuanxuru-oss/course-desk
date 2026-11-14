@@ -3,22 +3,24 @@
  *
  * 为什么用 Electron 而不是 Tauri:
  *   - 这台机器有 Rust,但没装 MSVC 链接器,编译不了 Tauri;
- *   - Electron 自带运行时,而且有现成的**全局鼠标位置** API(screen.getCursorScreenPoint),
+ *   - Electron 自带运行时,而且有现成的全局鼠标位置 API(screen.getCursorScreenPoint),
  *     眼神跟随必须要它 —— 浏览器里拿不到别的窗口上的鼠标坐标。
  *
  * 窗口特性:透明、无边框、置顶、不进任务栏、可拖、平时不挡鼠标(鼠标穿透)。
  */
-/* 有人会在环境里设 ELECTRON_RUN_AS_NODE,那会让 Electron 退化成纯 Node,窗口起不来 */
-if (process.env.ELECTRON_RUN_AS_NODE) delete process.env.ELECTRON_RUN_AS_NODE
-
 const { app, BrowserWindow, Menu, screen, ipcMain, shell } = require('electron')
+const path = require('node:path')
 
-if (!process.versions.electron) {
-  console.error('[桌宠] 请用 
-pm run desktop 启动(当前被当成普通 Node 在跑)')
+/*
+ * 有人在环境里设了 ELECTRON_RUN_AS_NODE,那会让 Electron 退化成纯 Node:
+ * 这时 require('electron') 只返回一个路径字符串,ipcMain / app 全是 undefined。
+ * 这时候窗口当然起不来,所以这里给出明确提示,而不是抛一句看不懂的 TypeError。
+ */
+if (!ipcMain || !app) {
+  console.error('[pet] Electron 没有以 GUI 模式启动(环境里有 ELECTRON_RUN_AS_NODE)')
+  console.error('[pet] 请双击 desktop\\start-pet.cmd,或先执行: $env:ELECTRON_RUN_AS_NODE=""')
   process.exit(1)
 }
-const path = require('node:path')
 
 /** 桌宠页面(默认线上;本地调式可用 PET_URL=http://localhost:5173/#/pet) */
 const PET_URL = process.env.PET_URL || 'https://yuanxuru-oss.github.io/course-desk/#/pet'
@@ -65,15 +67,19 @@ function createWindow() {
   win.loadURL(PET_URL)
   win.once('ready-to-show', () => win.show())
 
+  win.webContents.on('did-fail-load', (_e, code, desc) => {
+    console.error('[pet] 页面加载失败', code, desc, PET_URL)
+  })
+
   /*
    * 全局鼠标位置:每 40ms 推一次(25Hz)。
-   * 只算相对窗口的坐标,渲染端据此让眼眶/头转向鼠标 —— 这就是「眼神跟随」的数据源。
+   * 只算相对窗口的坐标,渲染端据此让头和眼珠转向鼠标 —— 这就是「眼神跟随」的数据源。
    */
   cursorTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return
     const p = screen.getCursorScreenPoint()
 
-    // 拖拽中:窗口跟着鼠标走(而不是让系统处理,透明窗没有标题栏)
+    // 拖拽中:窗口跟着鼠标走(透明窗没有标题栏,不能靠系统拖)
     if (dragOffset) {
       win.setPosition(Math.round(p.x - dragOffset.x), Math.round(p.y - dragOffset.y))
     }
@@ -115,14 +121,14 @@ ipcMain.on('pet:open-app', () => {
 })
 
 /* ---------- 右键菜单 ---------- */
-function showMenu() {
+ipcMain.on('pet:menu', () => {
+  if (!win) return
   Menu.buildFromTemplate([
     { label: '打开课程桌', click: () => shell.openExternal(APP_URL) },
     { type: 'separator' },
     { label: '退出桌宠', click: () => app.quit() },
   ]).popup({ window: win })
-}
-ipcMain.on('pet:menu', showMenu)
+})
 
 app.whenReady().then(createWindow)
 app.on('window-all-closed', () => app.quit())
