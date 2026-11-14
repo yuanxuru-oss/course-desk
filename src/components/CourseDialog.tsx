@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink, Trash2, AlertTriangle, Link2, Plus, X, Clock } from 'lucide-react'
 import type { Course, Settings } from '../types'
-import { Button, Modal, Field, Input, Select, Textarea, Badge } from './ui'
+import { Button, Field, Input, Select, Textarea, Badge } from './ui'
+import { Modal as AntModal } from 'antd'
 import { findConflicts, WEEKDAY_CN } from '../lib/time'
 import { hashColor } from '../lib/utils'
 
@@ -89,13 +90,16 @@ export function CourseDialog({ open, course, allCourses, settings, onClose, onSa
   }
 
   return (
-    <Modal
+    <AntModal
       open={open}
-      onClose={onClose}
-      wide
+      onCancel={onClose}
+      width={620}
+      centered
+      destroyOnHidden
       title={course ? '编辑课程' : '添加课程'}
+      styles={{ body: { maxHeight: '68vh', overflowY: 'auto', paddingRight: 4 } }}
       footer={
-        <>
+        <div className="flex items-center gap-2 pt-1">
           {course && onDelete && (
             <Button
               variant="ghost"
@@ -108,11 +112,13 @@ export function CourseDialog({ open, course, allCourses, settings, onClose, onSa
               <Trash2 size={15} /> 删除
             </Button>
           )}
-          <Button onClick={onClose}>取消</Button>
+          <Button className="ml-auto" onClick={onClose}>
+            取消
+          </Button>
           <Button variant="primary" onClick={submit}>
             保存
           </Button>
-        </>
+        </div>
       }
     >
       <div className="space-y-4">
@@ -394,7 +400,7 @@ export function CourseDialog({ open, course, allCourses, settings, onClose, onSa
           </a>
         )}
       </div>
-    </Modal>
+    </AntModal>
   )
 }
 

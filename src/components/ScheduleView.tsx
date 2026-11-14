@@ -15,8 +15,10 @@ import {
   Flag,
   Repeat,
   Zap,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
-import type { Course, CourseEvent, Settings } from '../types'
+import type { Course, CourseEvent, Homework, Settings } from '../types'
 import {
   courseInWeek,
   coursePeriods,
@@ -36,6 +38,7 @@ import {
   weekdayLabel,
 } from '../lib/event'
 import { Button, Badge, Empty, Star as StarIcon, Card } from './ui'
+import { Select, Tooltip, Popover, Empty as AntEmpty, Checkbox, Tag, App as AntApp } from 'antd'
 import { CourseDialog } from './CourseDialog'
 import { EventDialog } from './EventDialog'
 import { upsertCourse, deleteCourse, upsertEvent, deleteEvent } from '../lib/actions'
@@ -44,14 +47,16 @@ import { cn, COURSE_COLORS, hashColor, readableText } from '../lib/utils'
 interface Props {
   courses: Course[]
   events: CourseEvent[]
+  homework: Homework[]
   settings: Settings
   onToast: (text: string, type?: 'info' | 'success' | 'error') => void
 }
 
 const ROW_H = 86
 
-export function ScheduleView({ courses, events, settings, onToast }: Props) {
+export function ScheduleView({ courses, events, homework, settings, onToast }: Props) {
   const thisWeek = currentWeek(settings)
+  const { message } = AntApp.useApp()
   const [week, setWeek] = useState(thisWeek)
   const [editing, setEditing] = useState<Course | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -60,12 +65,69 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
   const [dragOver, setDragOver] = useState<{ weekday: number; period: number } | null>(null)
   const dragId = useRef<string | null>(null)
 
+  /* ---------------- 顶部筛选(Ant Design 控件,皮肤沿用课程桌的米黄) ---------------- */
+  const [courseFilter, setCourseFilter] = useState<string[]>([])
+  const [teacherFilter, setTeacherFilter] = useState<string[]>([])
+  const [onlyHomework, setOnlyHomework] = useState(false)
+  const filtersActive = courseFilter.length > 0 || teacherFilter.length > 0 || onlyHomework
+  const clearFilters = () => {
+    setCourseFilter([])
+    setTeacherFilter([])
+    setOnlyHomework(false)
+  }
+
+  /** 卡片上的快捷删除:antd message 带「撤销」,比一句 toast 友好 */
+  const quickDelete = async (c: Course) => {
+    await deleteCourse(c.id)
+    message.open({
+      type: 'success',
+      duration: 6,
+      content: (
+        <span className="inline-flex items-center gap-2">
+          已删除「{c.name}」
+          <button
+            className="text-[12px] font-extrabold text-tangerine-600 hover:text-tangerine-700 underline underline-offset-2"
+            onClick={async () => {
+              await upsertCourse(c)
+              message.destroy()
+              onToast(`「${c.name}」已恢复`, 'success')
+            }}
+          >
+            撤销
+          </button>
+        </span>
+      ),
+    })
+  }
+
   const todayWeekday = new Date().getDay() === 0 ? 7 : new Date().getDay()
   // 只有正在看「本周」时才是「今天」;翻到第 3 周还把当天整列标成今天会误导
   const today = week === thisWeek ? todayWeekday : -1
   const monday = weekToMonday(week, settings.semesterStart)
 
-  const visible = useMemo(() => courses.filter((c) => courseInWeek(c, week)), [courses, week])
+  const visible = useMemo(() => {
+    let list = courses.filter((c) => courseInWeek(c, week))
+    if (courseFilter.length) list = list.filter((c) => courseFilter.includes(c.name))
+    if (teacherFilter.length) list = list.filter((c) => c.teacher && teacherFilter.includes(c.teacher))
+    if (onlyHomework) {
+      const withHw = new Set(homework.filter((h) => !h.done).map((h) => h.courseId))
+      list = list.filter((c) => withHw.has(c.id))
+    }
+    return list
+  }, [courses, week, courseFilter, teacherFilter, onlyHomework, homework])
+
+  /** 筛选下拉的候选项(来自全部课程,而不是当前周) */
+  const courseOptions = useMemo(
+    () => [...new Set(courses.map((c) => c.name))].sort().map((n) => ({ label: n, value: n })),
+    [courses],
+  )
+  const teacherOptions = useMemo(
+    () =>
+      [...new Set(courses.map((c) => c.teacher).filter((t): t is string => !!t))]
+        .sort()
+        .map((t) => ({ label: t, value: t })),
+    [courses],
+  )
 
   /** 本周出现的行程(每周重复的每周都出现) */
   const occurrences = useMemo(() => eventsInWeek(events, week, settings), [events, week, settings])
@@ -151,27 +213,45 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
 
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="flex items-center bg-white/20 rounded-full p-1 gap-0.5">
-                <button
-                  onClick={() => setWeek((w) => Math.max(1, w - 1))}
-                  className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
-                  aria-label="上一周"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <button
-                  onClick={() => setWeek(thisWeek)}
-                  className="px-3 h-9 rounded-full text-white text-[13px] font-bold hover:bg-white/25 transition-colors whitespace-nowrap"
-                >
-                  本周
-                </button>
-                <button
-                  onClick={() => setWeek((w) => Math.min(settings.weekCount, w + 1))}
-                  className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
-                  aria-label="下一周"
-                >
-                  <ChevronRight size={18} />
-                </button>
+                <Tooltip title="上一周" mouseEnterDelay={0.4}>
+                  <button
+                    onClick={() => setWeek((w) => Math.max(1, w - 1))}
+                    className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
+                    aria-label="上一周"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                </Tooltip>
+                <Tooltip title={week === thisWeek ? '现在就是本周' : '回到本周'} mouseEnterDelay={0.4}>
+                  <button
+                    onClick={() => setWeek(thisWeek)}
+                    className="px-3 h-9 rounded-full text-white text-[13px] font-bold hover:bg-white/25 transition-colors whitespace-nowrap"
+                  >
+                    本周
+                  </button>
+                </Tooltip>
+                <Tooltip title="下一周" mouseEnterDelay={0.4}>
+                  <button
+                    onClick={() => setWeek((w) => Math.min(settings.weekCount, w + 1))}
+                    className="w-9 h-9 rounded-full text-white hover:bg-white/25 grid place-items-center transition-colors"
+                    aria-label="下一周"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </Tooltip>
               </div>
+              <Select
+                value={week}
+                onChange={setWeek}
+                className="w-[104px]"
+                size="middle"
+                popupMatchSelectWidth={140}
+                options={Array.from({ length: settings.weekCount }, (_, i) => ({
+                  label: `第 ${i + 1} 周`,
+                  value: i + 1,
+                }))}
+                aria-label="跳到某一周"
+              />
               <Button
                 variant="secondary"
                 size="md"
@@ -236,6 +316,75 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ============ 筛选条(Ant Design Select / Checkbox / Tag) ============ */}
+      <div className="flex flex-wrap items-center gap-2 rounded-[22px] bg-white border-2 border-ink/[0.08] px-3 py-2.5">
+        <span className="text-[11.5px] font-extrabold text-ink-mute tracking-wide">筛选</span>
+
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount={1}
+          value={courseFilter}
+          onChange={setCourseFilter}
+          options={courseOptions}
+          placeholder="按课程"
+          className="min-w-[132px] max-w-[220px]"
+          size="small"
+        />
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount={1}
+          value={teacherFilter}
+          onChange={setTeacherFilter}
+          options={teacherOptions}
+          placeholder="按教师"
+          className="min-w-[120px] max-w-[200px]"
+          size="small"
+        />
+        <Checkbox checked={onlyHomework} onChange={(e) => setOnlyHomework(e.target.checked)}>
+          <span className="text-[12px] font-semibold">只看有作业</span>
+        </Checkbox>
+
+        {filtersActive && (
+          <>
+            <Tag color="orange" closable onClose={clearFilters} className="!m-0">
+              筛选中 · {visible.length} 门
+            </Tag>
+            <button
+              onClick={clearFilters}
+              className="text-[11.5px] font-bold text-ink-mute hover:text-ink underline underline-offset-2"
+            >
+              重置
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ============ 本周无课 / 筛选无结果 ============ */}
+      {courses.length > 0 && visible.length === 0 && (
+        <div className="rounded-[22px] bg-white border-2 border-ink/[0.08] py-2">
+          <AntEmpty
+            image={AntEmpty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <span className="text-[12.5px] text-ink-mute">
+                {filtersActive ? '当前筛选下没有课,换个条件试试' : `第 ${week} 周没有课`}
+              </span>
+            }
+          >
+            {filtersActive ? (
+              <Button variant="secondary" size="sm" onClick={clearFilters}>
+                清除筛选
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={openNew}>
+                <Plus size={13} /> 加一门课
+              </Button>
+            )}
+          </AntEmpty>
         </div>
       )}
 
@@ -349,9 +498,41 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
                         const fg = readableText(color)
                         const range = courseTimeRange(c, settings)
                         return (
-                          <div
+                          <Popover
                             key={c.id}
-                            draggable
+                            trigger="hover"
+                            mouseEnterDelay={0.45}
+                            placement="right"
+                            title={<span className="text-[12.5px] font-extrabold">{c.name}</span>}
+                            content={
+                              <div className="w-[172px] space-y-1 text-[11.5px]">
+                                <div className="text-ink-soft">
+                                  {WEEKDAY_CN[c.weekday - 1]} · 第 {startPeriod}
+                                  {periods.length > 1 ? `-${startPeriod + periods.length - 1}` : ''} 节
+                                  {range ? ` · ${range.label}` : ''}
+                                </div>
+                                {(c.teacher || c.location) && (
+                                  <div className="text-ink-mute">
+                                    {[c.teacher, c.location].filter(Boolean).join(' · ')}
+                                  </div>
+                                )}
+                                <div className="text-ink-mute">
+                                  第 {c.startWeek}-{c.endWeek} 周
+                                </div>
+                                <div className="flex items-center gap-1.5 pt-1.5">
+                                  <Button size="sm" variant="secondary" onClick={() => openEdit(c)}>
+                                    <Pencil size={12} /> 编辑
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => quickDelete(c)}>
+                                    <Trash2 size={12} /> 删除
+                                  </Button>
+                                </div>
+                                <div className="text-[10px] text-ink-mute/80 pt-1">拖动课块可以直接改时间</div>
+                              </div>
+                            }
+                          >
+                            <div
+                              draggable
                             onDragStart={(e) => {
                               // Firefox / 部分 WebKit 必须写 dataTransfer,
                               // 否则这次拖拽会被直接取消(Chrome 恰好容忍)
@@ -427,7 +608,8 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
                                 )}
                               </div>
                             )}
-                          </div>
+                            </div>
+                          </Popover>
                         )
                       })}
 
@@ -502,16 +684,18 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
         </div>
         {occurrences.length === 0 ? (
           <Card>
-            <Empty
-              icon={<Flag size={26} style={{ color: EVENT_COLOR }} />}
-              title="本周没有行程"
-              description="学生会会议、老师开会、党会、讲座……都可以记在这里,会自动同步到备忘"
-              action={
-                <Button variant="secondary" size="sm" onClick={openNewEvent}>
-                  <Plus size={13} /> 添加第一项行程
-                </Button>
+            <AntEmpty
+              image={AntEmpty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <span className="text-[12.5px] text-ink-mute">
+                  本周没有行程 —— 学生会会议、老师开会、党会、讲座都可以记在这里,会自动同步到备忘
+                </span>
               }
-            />
+            >
+              <Button variant="secondary" size="sm" onClick={openNewEvent}>
+                <Plus size={13} /> 添加第一项行程
+              </Button>
+            </AntEmpty>
             <div className="mt-3 flex items-start gap-2 rounded-xl bg-butter-50 border-2 border-ink/[0.07] px-3 py-2.5">
               <Zap size={13} className="text-tangerine-500 shrink-0 mt-0.5" />
               <p className="text-[11.5px] text-ink-soft leading-relaxed">
@@ -574,16 +758,18 @@ export function ScheduleView({ courses, events, settings, onToast }: Props) {
         </div>
         {courses.length === 0 ? (
           <Card>
-            <Empty
-              icon={<BookOpen size={28} className="text-tangerine-300" />}
-              title="还没有课程"
-              description="点击「加课」手动添加,或到「导入」页上传教务系统导出的 Excel"
-              action={
+              <AntEmpty
+                image={AntEmpty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span className="text-[12.5px] text-ink-mute">
+                    还没有课程 —— 点「加课」手动添加,或到「导入」页上传教务系统导出的 Excel / PDF
+                  </span>
+                }
+              >
                 <Button variant="primary" size="sm" onClick={openNew}>
                   添加第一门课
                 </Button>
-              }
-            />
+              </AntEmpty>
           </Card>
         ) : (
           <Card className="overflow-hidden">

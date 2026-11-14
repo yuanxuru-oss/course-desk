@@ -312,7 +312,13 @@ export function App() {
               />
             )}
             {route === 'schedule' && (
-              <ScheduleView courses={courses} events={events} settings={settings} onToast={toast} />
+              <ScheduleView
+                courses={courses}
+                events={events}
+                homework={homework}
+                settings={settings}
+                onToast={toast}
+              />
             )}
             {route === 'homework' && (
               <HomeworkView
