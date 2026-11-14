@@ -8,6 +8,19 @@ Tauri 更小(~5MB),但需要 Rust + MSVC 链接器编译;这个仓库的机器�
 Electron 自带运行时、而且有现成的**全局鼠标位置** API(`screen.getCursorScreenPoint`),
 眼神跟随必须要它 —— 浏览器里拿不到别的窗口上的鼠标坐标。
 
+## 最简单:双击启动
+
+直接双击 **`desktop\启动桌宠.cmd`** —— 它会绕开 npm 和 PowerShell 的执行策略,
+直接调 
+ode_modules 里的 Electron 启动。
+
+## 命令行启动
+
+> 如果 PowerShell 报「禁止运行脚本 / PSSecurityException」,那是 
+pm.ps1 被执行策略拦了,
+> 改用 **
+pm.cmd run desktop** 即可(或先 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned)。
+
 ## 跑起来
 
 ```bash
